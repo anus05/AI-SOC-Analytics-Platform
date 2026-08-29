@@ -1,29 +1,25 @@
 # Python
 __pycache__/
 *.py[cod]
-*.pyo
 
 # Virtual Environment
 venv/
+
+# Environment
 .env
-
-# VS Code
-.vscode/
-
-# Logs
-*.log
 
 # Database
 *.db
 *.sqlite3
 
-# Pytest
-.pytest_cache/
+# Zip
+*.zip
 
-# Build
-build/
-dist/
+# Documents
+*.docx
 
-# OS
-.DS_Store
-Thumbs.db
+# Logs
+*.log
+
+# VS Code
+.vscode/

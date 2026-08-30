@@ -1,0 +1,23 @@
+MODEL TRAINING REPORT
+==================================================
+
+Dataset Shape : (2572640, 71)
+Training Samples : (2058112, 70)
+Testing Samples : (514528, 70)
+
+============================================================
+MODEL PERFORMANCE
+============================================================
+
+Decision Tree
+Accuracy : 0.9978
+Precision : 0.9978
+Recall : 0.9978
+F1 Score : 0.9978
+
+Random Forest
+Accuracy : 0.9979
+Precision : 0.9978
+Recall : 0.9979
+F1 Score : 0.9978
+

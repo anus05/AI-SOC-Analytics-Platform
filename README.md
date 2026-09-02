@@ -1,82 +1,154 @@
-# AI-SOC Analytics Platform
+# 🛡️ AI-SOC Analytics Platform
 
-> An AI-powered Security Operations Center (SOC) platform for threat detection, alert investigation, threat intelligence enrichment, explainable scoring, incident reporting, and automated response.
+> An AI-powered Security Operations Center (SOC) platform for real-time threat detection, alert investigation, explainable AI scoring, threat intelligence enrichment, attack-chain visualization, and automated response (SOAR).
+
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-green)
+![FastAPI](https://img.shields.io/badge/FastAPI-Latest-green)
 ![React](https://img.shields.io/badge/React-19-61DAFB)
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue)
+![GitHub Actions](https://img.shields.io/badge/CI-GitHub%20Actions-success)
 ![License](https://img.shields.io/badge/License-MIT-yellow)
+
+---
 
 ## Contents
 
 - [Overview](#overview)
 - [Key Capabilities](#key-capabilities)
-- [Architecture](#architecture)
+- [Threat Detection Modules](#threat-detection-modules)
+- [Technology Stack](#technology-stack)
+- [System Architecture](#system-architecture)
+- [Project Structure](#project-structure)
 - [Quick Start](#quick-start)
 - [Configuration](#configuration)
 - [Running Locally](#running-locally)
 - [API Overview](#api-overview)
-- [Detection and Investigation](#detection-and-investigation)
 - [Machine Learning and Explainability](#machine-learning-and-explainability)
-- [Development](#development)
-- [Project Structure](#project-structure)
+- [Testing](#testing)
 - [Contributors](#contributors)
 - [License](#license)
 
+---
+
 ## Overview
-AI-SOC Analytics Platform combines a FastAPI backend, React dashboard, machine-learning services, and security operations workflows. It ingests security logs, detects suspicious activity, scores alerts, enriches indicators, maps activity to MITRE ATT&CK, and helps analysts investigate and respond.
+
+AI-SOC Analytics Platform combines a FastAPI backend, a React dashboard, machine-learning services, and SOC operations workflows into one system. It ingests security logs, detects suspicious activity across 10+ attack techniques, scores alerts with explainable AI, enriches indicators with external threat intelligence, maps activity to MITRE ATT&CK, visualizes attack chains, generates investigation reports, and lets analysts trigger automated response actions — all from a single dashboard.
 
 ## Key Capabilities
-### Detection and monitoring
 
-- Log parsing and ingestion
-- Brute-force, password-spray, impossible-travel, and port-scan detection
-- Credential-dumping, privilege-escalation, PowerShell, PsExec, encoded-command, ransomware, and lateral-movement detections
-- Alert filtering, severity scoring, correlation, and dashboard statistics
+### Detection and monitoring
+- Log parsing and ingestion, including bulk log-file upload
+- Rule-based and ML-assisted detection across 10 techniques (see below)
+- Alert filtering, correlation, severity scoring, and dashboard statistics
 
 ### Investigation and response
-- AI investigation copilot
-- Explainable threat scoring and risk factors
-- MITRE ATT&CK technique mapping
-- Attack-chain visualization
-- SOAR actions such as blocking an IP, disabling a user, killing a process, and generating Sigma, Snort, or YARA rules
-- Incident report generation and PDF download
+- AI investigation copilot for natural-language alert analysis
+- Explainable threat scoring with human-readable risk factors
+- MITRE ATT&CK technique mapping and attack-chain visualization
+- SOAR actions: block an IP, disable a user, kill a process, and auto-generate Sigma, Snort, or YARA rules
+- Incident report generation and download (PDF, DOCX, HTML, Markdown)
 
 ### Threat intelligence
-- VirusTotal
-- AbuseIPDB
-- WHOIS
-- GeoIP
+- VirusTotal, AbuseIPDB, WHOIS, and GeoIP lookups
 - IP reputation analysis
 
-## Architecture
+## Threat Detection Modules
+
+| Detector | MITRE ATT&CK technique |
+| --- | --- |
+| Brute force | T1110 |
+| Password spray | T1110.003 |
+| Impossible travel | T1550 |
+| Port scan | T1046 |
+| Credential dumping | T1003 |
+| Privilege escalation | T1068 |
+| PowerShell abuse | T1059 |
+| PsExec | T1021 |
+| Encoded commands | T1027 |
+| Ransomware behavior | T1486 |
+| Lateral movement | T1021 (family) |
+
+## Technology Stack
+
+| Layer | Tools |
+| --- | --- |
+| Backend | Python 3.11, FastAPI, SQLAlchemy, Pydantic, JWT auth |
+| Database | SQLite (local dev), PostgreSQL (Docker/production) |
+| Caching / Graph | Redis, Neo4j *(provisioned via Docker Compose; optional for pure local dev)* |
+| Frontend | React 19, Vite, Tailwind CSS, Axios, React Router, Chart.js |
+| Machine Learning | Scikit-learn, Pandas, NumPy, Joblib |
+| DevOps | Docker, Docker Compose, GitHub Actions CI, Pytest |
+
+## System Architecture
+
 ```text
-Security logs
-     |
-     v
-Log parser and ingestion
-     |
-     v
-Detection services ---- Machine-learning prediction
-     |                              |
-     +-------- Threat scoring ------+
-                     |
-                     v
-                Alert database
-            /       |        \
-           v        v         v
-     Dashboard  Copilot   SOAR/reporting
-                     |
-                     v
-          Threat intelligence and
-          MITRE ATT&CK enrichment
+                        Security Logs
+                              │
+                              ▼
+                    Log Parser / Ingestion
+                              │
+                              ▼
+                 Threat Detection Modules
+                              │
+          ┌───────────────────┼───────────────────┐
+          ▼                   ▼                   ▼
+     ML Prediction     Threat Intelligence     MITRE Mapper
+          │                   │                   │
+          └──────────────┬────┴───────────────────┘
+                          ▼
+              Explainable AI Threat Scoring
+                          │
+                          ▼
+                    Alert Database
+                          │
+         ┌────────────────┼─────────────────┐
+         ▼                ▼                  ▼
+     Dashboard        AI Copilot        SOAR Engine
+                          │
+                          ▼
+             Threat Intel & MITRE Enrichment,
+             Attack-Chain View, Report Generation
 ```
 
-The Docker Compose stack provides PostgreSQL, Redis, Neo4j, the FastAPI backend, and the production frontend container.
+The Docker Compose stack provisions PostgreSQL, Redis, Neo4j, the FastAPI backend, and the production frontend container.
+
+## Project Structure
+
+```text
+AI-SOC-Analytics-Platform/
+├── backend/
+│   ├── api/              API routers (alerts, copilot, attack-chain, threat-intel, reports, SOAR)
+│   ├── auth/             Authentication and security (JWT, password hashing)
+│   ├── database/         SQLAlchemy models, migrations, and CRUD operations
+│   ├── detectors/        Rule-based threat-detection logic
+│   ├── mitre/            MITRE ATT&CK technique mapping
+│   ├── parser/           Log parsing
+│   ├── scoring/          Explainable threat scoring
+│   ├── services/         ML inference, copilot, SOAR, report generation, enrichment
+│   ├── tests/             Backend tests
+│   └── main.py             FastAPI application entry point
+├── frontend/
+│   ├── src/                React application (pages, components, hooks, context)
+│   ├── public/
+│   ├── package.json
+│   └── vite.config.js
+├── ML/
+│   ├── data/                Training data
+│   ├── models/               Saved/trained models
+│   ├── plots/                 Evaluation plots
+│   ├── reports/                Evaluation reports
+│   └── train_model.py
+├── logs/                    Local log inputs
+├── reports/                  Generated incident reports
+├── .github/workflows/         CI pipeline (ci.yml)
+├── docker-compose.yml         Full local service stack
+├── Dockerfile                 Backend image definition
+└── README.md
+```
 
 ## Quick Start
 
-### Option 1: Docker Compose
+### Option 1: Docker Compose (recommended)
 
 From the repository root:
 
@@ -84,7 +156,12 @@ From the repository root:
 docker compose up --build
 ```
 
-Open the application at `http://localhost:5173`. The backend is available at `http://localhost:8000`, and FastAPI documentation is available at `http://localhost:8000/docs`.
+| Service | URL |
+| --- | --- |
+| Frontend | `http://localhost:5173` |
+| Backend | `http://localhost:8000` |
+| API docs (Swagger) | `http://localhost:8000/docs` |
+| Neo4j browser | `http://localhost:7474` |
 
 To stop the stack:
 
@@ -94,13 +171,14 @@ docker compose down
 
 ### Option 2: Run backend and frontend separately
 
-Prerequisites:
+Prerequisites: Python 3.11+, Node.js and npm. PostgreSQL/Redis/Neo4j are only needed if you're not using SQLite for local dev.
 
-- Python 3.11 or later
-- Node.js and npm
-- PostgreSQL, Redis, and Neo4j when using the external-service configuration
+```bash
+git clone https://github.com/anus05/AI-SOC-Analytics-Platform.git
+cd AI-SOC-Analytics-Platform
+```
 
-Install the backend:
+**Backend:**
 
 ```bash
 cd backend
@@ -108,13 +186,15 @@ python -m venv venv
 ```
 
 Windows PowerShell:
-
 ```powershell
 .\venv\Scripts\Activate.ps1
+```
+
+```bash
 pip install -r requirements.txt
 ```
 
-Install the frontend in a second terminal:
+**Frontend** (in a second terminal):
 
 ```bash
 cd frontend
@@ -123,44 +203,44 @@ npm install
 
 ## Configuration
 
-The backend reads its database and service settings from environment variables. For a simple local run, create `backend/.env` with:
+The backend reads database and service settings from environment variables. For a simple local run, create `backend/.env`:
 
 ```env
 DATABASE_URL=sqlite:///./soc.db
 SECRET_KEY=replace-with-a-long-random-value
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+SKIP_DB_MIGRATION=false
 ```
 
-The Docker Compose configuration supplies the PostgreSQL, Redis, and Neo4j connection values to the backend automatically. Update secrets before using the stack outside local development.
+Docker Compose supplies PostgreSQL, Redis, and Neo4j connection values automatically. **Rotate `SECRET_KEY` and any API keys before using this outside local development** — see the repo's `.env` handling notes if you're re-sharing this project.
 
 ## Running Locally
 
-Start the backend from the repository root:
+**Backend** (from the repository root, so the `backend.*` package imports resolve correctly):
 
 ```bash
 python -m uvicorn backend.main:app --reload --port 8000
 ```
 
-Start the frontend in a second terminal:
+**Frontend** (in a second terminal):
 
 ```bash
 cd frontend
 npm run dev
 ```
 
-Useful local URLs:
-
 | Service | URL |
 | --- | --- |
 | Frontend | `http://localhost:5173` |
 | Backend health | `http://localhost:8000/health` |
 | OpenAPI docs | `http://localhost:8000/docs` |
-| Neo4j browser | `http://localhost:7474` |
 
 ## API Overview
 
 All protected endpoints require a bearer token returned by `/auth/login`.
+
+> ⚠️ **Needs verification against current backend code:** the two prior README drafts disagreed on a few routes below. Confirm these against `backend/api/*.py` and `backend/auth/auth.py` and update this table once verified — flagged rows are marked.
 
 ### Authentication
 
@@ -168,7 +248,7 @@ All protected endpoints require a bearer token returned by `/auth/login`.
 | --- | --- | --- |
 | `POST` | `/auth/register` | Register a user |
 | `POST` | `/auth/login` | Obtain an access token |
-| `GET` | `/auth/me` | Get the current user |
+| `GET` | `/auth/me` ⚠️ | Get the current user *(one draft had this as `/auth/profile` — verify)* |
 
 ### Alerts and detection
 
@@ -186,567 +266,52 @@ All protected endpoints require a bearer token returned by `/auth/login`.
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `POST` | `/api/copilot/investigate/{alert_id}` | Investigate an alert with the AI copilot |
-| `GET` | `/api/copilot/explain-score/{alert_id}` | Explain an alert score |
-| `GET` | `/api/attack-chain/{alert_id}` | Get an alert attack chain |
+| `GET` | `/api/copilot/explain-score/{alert_id}` | Explain an alert's threat score |
+| `GET` | `/api/attack-chain/{alert_id}` | Get an alert's attack chain |
 | `GET` | `/api/threat-intel/{ip}` | Enrich an IP address |
-| `POST` | `/api/report/generate/{alert_id}` | Generate an incident report |
-| `GET` | `/api/report/download/{report_id}` | Download a report PDF |
-| `POST` | `/api/soar/action` | Execute a response action |
+| `POST` | `/api/report/generate/{alert_id}` ⚠️ | Generate an incident report *(one draft used separate `/report/pdf`, `/report/docx`, etc. — verify which pattern is implemented)* |
+| `GET` | `/api/report/download/{report_id}` | Download a generated report |
+| `POST` | `/api/soar/action` | Execute a SOAR response action |
 
-For the complete request and response schemas, use the interactive OpenAPI documentation at `/docs`.
-
-## Detection and Investigation
-
-Detected activity is mapped to MITRE ATT&CK techniques, enriched with available threat-intelligence data, and persisted as alerts. Analysts can review severity and threat scores, inspect explainable risk factors, investigate alerts with the copilot, visualize attack chains, generate reports, and trigger response actions from the dashboard.
-
-Common technique mappings include:
-
-| Detector | MITRE ATT&CK technique |
-| --- | --- |
-| Brute force | T1110 |
-| Password spray | T1110.003 |
-| Impossible travel | T1550 |
-| Port scan | T1046 |
-| Credential dumping | T1003 |
-| Privilege escalation | T1068 |
-| PowerShell abuse | T1059 |
-| PsExec | T1021 |
-| Encoded commands | T1027 |
-| Ransomware behavior | T1486 |
+For complete request/response schemas, use the interactive OpenAPI docs at `/docs`.
 
 ## Machine Learning and Explainability
 
-The ML pipeline predicts malicious behavior from extracted security-log features. Alert results can include:
+The ML pipeline predicts malicious behavior from extracted security-log features. Alert results include:
 
-- Threat probability
-- Confidence score
+- Threat probability and confidence score
 - False-positive probability
-- Risk classification
-- Risk factors and a human-readable explanation
+- Risk classification and risk factors
+- A human-readable explanation of the score
 
-Training data, models, plots, and generated evaluation reports are stored under `ML/`.
+Training data, trained models, evaluation plots, and reports are stored under `ML/`.
 
-## Development
-
-Run backend tests:
+## Testing
 
 ```bash
+# Backend
 pytest backend/tests -v
-```
 
-Run frontend checks and build:
-
-```bash
+# Frontend
 cd frontend
 npm run lint
 npm run build
 ```
 
-## Project Structure
-
-```text
-AI-SOC-Analytics-Platform/
-├── backend/
-│   ├── api/              API routers
-│   ├── auth/             Authentication and security
-│   ├── database/         SQLAlchemy models and CRUD operations
-│   ├── detectors/        Threat-detection rules
-│   ├── mitre/            MITRE ATT&CK mapping
-│   ├── parser/           Log parsing
-│   ├── scoring/          Threat scoring
-│   ├── services/         ML, copilot, SOAR, reports, and enrichment
-│   ├── tests/             Backend tests
-│   └── main.py            FastAPI application entry point
-├── frontend/
-│   ├── src/               React application
-│   └── package.json       Frontend scripts and dependencies
-├── ML/                    Training data, models, plots, and reports
-├── logs/                  Local log inputs
-├── docker-compose.yml     Full local service stack
-├── Dockerfile             Backend image definition
-└── README.md
-```
+CI runs the backend test suite automatically on push/PR via GitHub Actions (`.github/workflows/ci.yml`), with `SKIP_DB_MIGRATION=true` so tests don't depend on a live database.
 
 ## Contributors
 
 | Name | Role |
 | --- | --- |
 | Anusmita Ray Chaudhuri | Backend development, security engineering, FastAPI APIs, AI integration |
-| Anirban Ray | Frontend development and dashboard UI |
+| Anirban Ray | Full-stack development — frontend/dashboard UI, plus cross-team backend and integration support |
 | Abir Pramanick | Machine learning, model training, and evaluation |
 
 ## License
 
 This project is licensed under the MIT License.
-# 🛡️ AI-SOC Analytics Platform
-
-> **An AI-powered Security Operations Center (SOC) Analytics Platform for intelligent threat detection, automated incident response, explainable AI scoring, threat intelligence enrichment, and attack chain visualization.**
-
-![Python](https://img.shields.io/badge/Python-3.11-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-Latest-green)
-![React](https://img.shields.io/badge/React-19-61DAFB)
-![License](https://img.shields.io/badge/License-MIT-yellow)
-![Docker](https://img.shields.io/badge/Docker-Ready-blue)
-![GitHub Actions](https://img.shields.io/badge/CI-GitHub%20Actions-success)
 
 ---
 
-# 📑 Table of Contents
-
-- Overview
-- Features
-- System Architecture
-- Threat Detection Modules
-- Technology Stack
-- Project Structure
-- Installation
-- Configuration
-- Running the Application
-- API Endpoints
-- Machine Learning
-- Explainable AI
-- Threat Intelligence
-- SOAR Automation
-- Attack Chain Visualization
-- Report Generation
-- Testing
-- Contributors
-- License
-
----
-
-# 🎯 Overview
-
-AI-SOC Analytics Platform is an enterprise-ready Security Operations Center (SOC) solution developed using FastAPI, React, Machine Learning, and the MITRE ATT&CK Framework.
-
-The platform continuously analyzes security logs, detects malicious activities, calculates AI-powered threat scores, enriches alerts using threat intelligence services, maps attacks to MITRE ATT&CK, generates investigation reports, and assists analysts with AI-powered recommendations.
-
----
-
-# ✨ Features
-
-## Security Monitoring
-
-- Real-time Threat Detection
-- Log Parsing
-- Alert Correlation
-- Threat Severity Scoring
-- Dashboard Analytics
-
-## Artificial Intelligence
-
-- Machine Learning Prediction
-- Explainable AI Scoring
-- AI Copilot Assistant
-- Risk Prediction
-- False Positive Estimation
-
-## Threat Intelligence
-
-- VirusTotal Integration
-- AbuseIPDB Lookup
-- WHOIS Lookup
-- GeoIP Lookup
-- IP Reputation Analysis
-
-## Detection Modules
-
-- Brute Force Detection
-- Password Spray Detection
-- Impossible Travel Detection
-- Port Scan Detection
-- Credential Dumping Detection
-- Privilege Escalation Detection
-- PowerShell Abuse Detection
-- PsExec Detection
-- Encoded Command Detection
-- Suspicious Admin Activity
-- Ransomware Behaviour Detection
-- Lateral Movement Detection
-
-## SOC Operations
-
-- MITRE ATT&CK Mapping
-- Attack Chain Visualization
-- Incident Report Generation
-- SOAR Automation
-- Dashboard Statistics
-
-## Reports
-
-Generate reports in
-
-- PDF
-- DOCX
-- HTML
-- Markdown
-
----
-
-# 🏗️ System Architecture
-
-```
-                        Security Logs
-                              │
-                              ▼
-                    Log Parser Engine
-                              │
-                              ▼
-                 Threat Detection Modules
-                              │
-          ┌───────────────────┼───────────────────┐
-          ▼                   ▼                   ▼
-     ML Prediction     Threat Intelligence   MITRE Mapper
-          │                   │                   │
-          └──────────────┬────┴───────────────┐
-                         ▼
-              Explainable AI Scoring
-                         │
-                         ▼
-                    Alert Database
-                         │
-         ┌───────────────┼────────────────┐
-         ▼               ▼                ▼
-     Dashboard      AI Copilot      SOAR Engine
-```
-
----
-
-# 🔍 Threat Detection Modules
-
-| Detector | MITRE Technique |
-|----------|----------------|
-| Brute Force | T1110 |
-| Password Spray | T1110.003 |
-| Impossible Travel | T1550 |
-| Port Scan | T1046 |
-| Credential Dumping | T1003 |
-| Privilege Escalation | T1068 |
-| PowerShell Abuse | T1059 |
-| PsExec | T1021 |
-| Encoded Commands | T1027 |
-| Ransomware Behaviour | T1486 |
-
----
-
-# 💻 Technology Stack
-
-## Backend
-
-- Python 3.11
-- FastAPI
-- SQLAlchemy
-- Pydantic
-- JWT Authentication
-- SQLite
-- PostgreSQL
-
-## Frontend
-
-- React 19
-- Vite
-- Tailwind CSS
-- Axios
-- React Router
-- Chart.js
-
-## Machine Learning
-
-- Scikit-learn
-- Pandas
-- NumPy
-- Joblib
-
-## DevOps
-
-- Docker
-- Docker Compose
-- GitHub Actions
-- Pytest
-
----
-
-# 📂 Project Structure
-
-```
-AI-SOC-Analytics-Platform
-│
-├── backend
-│   ├── api
-│   ├── auth
-│   ├── database
-│   ├── detectors
-│   ├── parser
-│   ├── scoring
-│   ├── mitre
-│   ├── report
-│   ├── services
-│   ├── tests
-│   └── main.py
-│
-├── frontend
-│   ├── src
-│   ├── public
-│   ├── package.json
-│   └── vite.config.js
-│
-├── ML
-│   ├── data
-│   ├── models
-│   ├── reports
-│   ├── plots
-│   └── train_model.py
-│
-├── logs
-├── reports
-├── docker-compose.yml
-└── README.md
-```
-
----
-
-# 🚀 Installation
-
-## Clone Repository
-
-```bash
-git clone https://github.com/anus05/AI-SOC-Analytics-Platform.git
-
-cd AI-SOC-Analytics-Platform
-```
-
-## Backend
-
-```bash
-cd backend
-
-python -m venv venv
-
-# Windows
-venv\Scripts\activate
-
-pip install -r requirements.txt
-```
-
-## Frontend
-
-```bash
-cd frontend
-
-npm install
-```
-
----
-
-# ⚙️ Configuration
-
-Create `.env`
-
-```
-DATABASE_URL=sqlite:///./soc.db
-
-SECRET_KEY=your_secret_key
-
-ALGORITHM=HS256
-
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-```
-
----
-
-# ▶️ Running the Project
-
-## Backend
-
-```bash
-cd backend
-
-python main.py
-```
-
-Backend
-
-```
-http://localhost:8000
-```
-
----
-
-## Frontend
-
-```bash
-cd frontend
-
-npm run dev
-```
-
-Frontend
-
-```
-http://localhost:5173
-```
-
----
-
-# 📚 API Endpoints
-
-## Authentication
-
-```
-POST /auth/register
-
-POST /auth/login
-
-GET /auth/profile
-```
-
-## Detection
-
-```
-POST /scan
-
-GET /alerts
-
-GET /alerts/{id}
-
-GET /statistics
-
-GET /dashboard
-
-GET /distribution
-```
-
-## Reports
-
-```
-POST /report/pdf
-
-POST /report/docx
-
-POST /report/html
-
-POST /report/markdown
-```
-
-## AI
-
-```
-POST /copilot/query
-
-GET /threat-intel/{ip}
-
-GET /attack-chain/{alert_id}
-
-POST /soar/action
-```
-
----
-
-# 🤖 Machine Learning
-
-The platform uses supervised machine learning models to predict malicious behavior based on extracted security log features.
-
-Features include
-
-- Threat Probability
-- Confidence Score
-- False Positive Probability
-- Risk Classification
-
----
-
-# 🧠 Explainable AI
-
-Each generated alert contains
-
-- AI Threat Score
-- Confidence
-- ML Probability
-- False Positive Probability
-- Risk Factors
-- Human-readable Explanation
-
----
-
-# 🌐 Threat Intelligence
-
-Supports
-
-- VirusTotal
-- AbuseIPDB
-- WHOIS
-- GeoIP
-- IP Reputation
-
----
-
-# ⚡ SOAR Automation
-
-Automated response actions
-
-- Block IP
-- Disable User
-- Generate Sigma Rule
-- Generate Snort Rule
-- Generate YARA Rule
-- Kill Process
-- Create Incident Ticket
-
----
-
-# 🔗 Attack Chain Visualization
-
-Visual investigation interface showing
-
-- Initial Access
-- Execution
-- Persistence
-- Privilege Escalation
-- Defense Evasion
-- Credential Access
-- Discovery
-- Lateral Movement
-- Impact
-
----
-
-# 📄 Report Generation
-
-Generate reports in
-
-- PDF
-- DOCX
-- HTML
-- Markdown
-
----
-
-# 🧪 Testing
-
-Run backend tests
-
-```bash
-pytest backend/tests -v
-```
-
----
-
-# 👨‍💻 Contributors
-
-| Name | Role |
-|------|------|
-| **Anusmita Ray Chaudhuri** | Backend Development, Security Engineering, FastAPI APIs, AI Integration |
-| **Anirban Ray** | Frontend Development (React.js), Dashboard UI |
-| **Abir Pramanick** | Machine Learning, Model Training & Evaluation |
-
----
-
-# 📜 License
-
-This project is licensed under the MIT License.
-
----
-
-# ⭐ Support
-
-If you like this project, please consider giving it a ⭐ on GitHub.
+⭐ If you find this project useful, consider giving it a star on GitHub.

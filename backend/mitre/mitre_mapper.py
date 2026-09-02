@@ -16,6 +16,22 @@ MITRE_ATTACK = {
         "recommendation": "Block scanning IP and review firewall rules."
     },
 
+    "Password Spray": {
+        "technique": "T1110.003",
+        "name": "Password Spraying",
+        "tactic": "Credential Access",
+        "description": "Adversaries attempt a single or small list of commonly used passwords against many user accounts.",
+        "recommendation": "Enforce strong multi-factor authentication (MFA), password complexity rules, and alert on distributed login anomalies."
+    },
+
+    "Impossible Travel": {
+        "technique": "T1078",
+        "name": "Valid Accounts - Geo-velocity Anomaly",
+        "tactic": "Initial Access / Defense Evasion",
+        "description": "User authentication events originating from geographically impossible distances within an unfeasible time delta.",
+        "recommendation": "Revoke active session tokens, force credential reset, and verify user identity out-of-band."
+    },
+
     "SQL Injection": {
         "technique": "T1190",
         "name": "Exploit Public Facing Application",

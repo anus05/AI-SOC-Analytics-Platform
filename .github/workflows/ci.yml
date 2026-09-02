@@ -24,5 +24,7 @@ jobs:
           pip install pytest pytest-cov
 
       - name: Run pytest test suite
-        run: |
-          pytest backend/tests -v --tb=short
+  env:
+    PYTHONPATH: ${{ github.workspace }}
+  run: |
+    python -m pytest backend/tests -v --tb=short

@@ -223,6 +223,12 @@ Docker Compose supplies PostgreSQL, Redis, and Neo4j connection values automatic
 python -m uvicorn backend.main:app --reload --port 8000
 ```
 
+If the environment has not been set up yet, install the backend dependencies first:
+
+```bash
+python -m pip install -r backend/requirements.txt
+```
+
 **Frontend** (in a second terminal):
 
 ```bash

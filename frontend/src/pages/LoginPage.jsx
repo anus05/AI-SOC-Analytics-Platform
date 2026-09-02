@@ -55,7 +55,10 @@ const LoginPage = () => {
     setSuccessMsg('');
 
     if (mode === 'login') {
-      const ok = await login(email, password);
+      const ok = await login(
+    name || email.split("@")[0],
+    password
+);
       setSubmitting(false);
       if (ok) navigate('/');
     } else {

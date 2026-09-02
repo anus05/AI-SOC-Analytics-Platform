@@ -1,93 +1,111 @@
-import React, { createContext, useState, useEffect } from 'react';
-import client, { registerTokenGetter } from '../api/client';
+import React, { createContext, useState, useEffect } from "react";
+import client, { registerTokenGetter } from "../api/client";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(() => localStorage.getItem('soc_token'));
+  const [token, setToken] = useState(
+    () => localStorage.getItem("soc_token")
+  );
+
   const [operator, setOperator] = useState(() => {
-    const saved = localStorage.getItem('soc_operator');
-    try {
-      return saved ? JSON.parse(saved) : null;
-    } catch {
-      return null;
-    }
+    const saved = localStorage.getItem("soc_operator");
+    return saved ? JSON.parse(saved) : null;
   });
-  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('soc_token'));
+
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    !!localStorage.getItem("soc_token")
+  );
+
   const [error, setError] = useState(null);
 
-  // Synchronize dynamic token getter for Axios
   useEffect(() => {
     registerTokenGetter(() => token);
   }, [token]);
 
-  // Global unauthorized event listener
   useEffect(() => {
     const handleUnauthorized = () => {
-      localStorage.removeItem('soc_token');
-      localStorage.removeItem('soc_operator');
-      setToken(null);
-      setOperator(null);
-      setIsAuthenticated(false);
-      setError("Session expired. Please sign in again.");
+      logout();
+      setError("Session expired. Please login again.");
     };
-    window.addEventListener('auth-unauthorized', handleUnauthorized);
-    return () => window.removeEventListener('auth-unauthorized', handleUnauthorized);
+
+    window.addEventListener("auth-unauthorized", handleUnauthorized);
+
+    return () =>
+      window.removeEventListener(
+        "auth-unauthorized",
+        handleUnauthorized
+      );
   }, []);
 
-  const login = async (email, password) => {
+  // ---------------- LOGIN ----------------
+
+  const login = async (username, password) => {
     try {
       setError(null);
-      // Attempt backend authentication
-      const response = await client.post('/auth/login', { email, password });
-      const { access_token, user } = response.data;
-      const opData = user || { email, name: email.split('@')[0].toUpperCase(), role: 'Operator' };
-      
-      localStorage.setItem('soc_token', access_token);
-      localStorage.setItem('soc_operator', JSON.stringify(opData));
-      
+
+      const response = await client.post("/auth/login", {
+        username,
+        password,
+      });
+
+      const access_token = response.data.access_token;
+
+      localStorage.setItem("soc_token", access_token);
+
       setToken(access_token);
-      setOperator(opData);
+
+      // fetch logged-in user
+      const me = await client.get("/auth/me");
+
+      localStorage.setItem(
+        "soc_operator",
+        JSON.stringify(me.data)
+      );
+
+      setOperator(me.data);
+
       setIsAuthenticated(true);
+
       return true;
     } catch (err) {
-      console.warn("Backend auth failed. Falling back to mock session for demonstration.", err);
-      // Dynamic fallback for offline / mock testing
-      if (email && password) {
-        const mockToken = "mock-jwt-session-token";
-        const mockOp = {
-          email: email,
-          name: email.split('@')[0].toUpperCase(),
-          role: 'Lead Analyst'
-        };
-        
-        localStorage.setItem('soc_token', mockToken);
-        localStorage.setItem('soc_operator', JSON.stringify(mockOp));
-        
-        setToken(mockToken);
-        setOperator(mockOp);
-        setIsAuthenticated(true);
-        return true;
-      }
-      setError(err.response?.data?.detail || "Connection to authorization server failed.");
+      setError(
+        err.response?.data?.detail ||
+          "Invalid username or password"
+      );
       return false;
     }
   };
 
-  const register = async (email, name, password) => {
+  // ---------------- REGISTER ----------------
+
+  const register = async (email, username, password) => {
     try {
       setError(null);
-      await client.post('/auth/register', { email, name, password });
+
+      await client.post("/auth/register", {
+        username,
+        email,
+        password,
+        role: "analyst",
+      });
+
       return true;
     } catch (err) {
-      setError(err.response?.data?.detail || "Registration failed. Please verify specifications.");
+      setError(
+        err.response?.data?.detail ||
+          "Registration failed."
+      );
       return false;
     }
   };
+
+  // ---------------- LOGOUT ----------------
 
   const logout = () => {
-    localStorage.removeItem('soc_token');
-    localStorage.removeItem('soc_operator');
+    localStorage.removeItem("soc_token");
+    localStorage.removeItem("soc_operator");
+
     setToken(null);
     setOperator(null);
     setIsAuthenticated(false);
@@ -95,7 +113,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ token, operator, isAuthenticated, error, login, register, logout, setError }}>
+    <AuthContext.Provider
+      value={{
+        token,
+        operator,
+        isAuthenticated,
+        error,
+        login,
+        register,
+        logout,
+        setError,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

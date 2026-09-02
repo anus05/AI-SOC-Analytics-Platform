@@ -14,12 +14,25 @@ import pandas as pd
 warnings.filterwarnings("ignore")
 
 # ==========================================================
-# Configuration
-# ==========================================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DATA_PATH = "data/ml_dataset.csv"
 
-PLOT_DIR = "plots"
+def resolve_path(rel_path):
+    if os.path.isabs(rel_path) and os.path.exists(rel_path):
+        return rel_path
+    candidates = [
+        rel_path,
+        os.path.join(BASE_DIR, rel_path),
+        os.path.join(BASE_DIR, "..", rel_path)
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return os.path.abspath(c)
+    return os.path.abspath(os.path.join(BASE_DIR, rel_path))
+
+
+DATA_PATH = resolve_path("data/ml_dataset.csv")
+PLOT_DIR = resolve_path("plots")
 
 os.makedirs(PLOT_DIR, exist_ok=True)
 
@@ -31,9 +44,14 @@ print("=" * 60)
 print("Loading Dataset")
 print("=" * 60)
 
+if not os.path.exists(DATA_PATH):
+    print(f"[!] Dataset not found at {DATA_PATH}. Please run preprocessing first.")
+    exit(0)
+
 df = pd.read_csv(DATA_PATH)
 
 print("Dataset Loaded Successfully\n")
+
 
 # ==========================================================
 # Dataset Information

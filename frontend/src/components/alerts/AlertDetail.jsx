@@ -24,12 +24,12 @@ const AlertDetail = ({ alert, onUpdateStatus, onBack }) => {
   };
 
   const getSeverityStyles = (severity) => {
-    switch (severity.toUpperCase()) {
+    switch ((severity || '').toUpperCase()) {
       case 'CRITICAL': return { text: 'text-[#f85149]', border: 'border-[#f85149]/30 bg-[#f85149]/10' };
       case 'HIGH': return { text: 'text-[#d29922]', border: 'border-[#d29922]/30 bg-[#d29922]/10' };
-      case 'MEDIUM': return { text: 'text-[#8b949e]', border: 'border-[#8b949e]/30 bg-[#8b949e]/10' };
+      case 'MEDIUM': return { text: 'text-[#58a6ff]', border: 'border-[#58a6ff]/30 bg-[#58a6ff]/10' };
       case 'LOW':
-      default: return { text: 'text-[#6e7681]', border: 'border-[#6e7681]/30 bg-[#6e7681]/10' };
+      default: return { text: 'text-[#8b949e]', border: 'border-[#8b949e]/30 bg-[#8b949e]/10' };
     }
   };
 
@@ -58,10 +58,10 @@ const AlertDetail = ({ alert, onUpdateStatus, onBack }) => {
           <div className="bg-surface border border-border rounded p-3 flex flex-col justify-between relative overflow-hidden card-hover">
             <div className="flex justify-between items-start z-10">
               <span className="font-sans text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">Threat Score</span>
-              <div className={`w-2 h-2 rounded-full ${alert.threatScore >= 80 ? 'bg-[#f85149]' : alert.threatScore >= 50 ? 'bg-[#d29922]' : 'bg-accent'}`}></div>
+              <div className={`w-2.5 h-2.5 rounded-full ${alert.threatScore >= 80 ? 'bg-[#f85149] animate-ping' : alert.threatScore >= 50 ? 'bg-[#d29922]' : 'bg-accent'}`}></div>
             </div>
             <div className="mt-4 z-10 flex items-baseline gap-xs">
-              <span className={`font-mono text-[24px] font-bold tracking-tight ${alert.threatScore >= 80 ? 'text-[#f85149]' : alert.threatScore >= 50 ? 'text-[#d29922]' : 'text-accent'}`}>
+              <span className={`font-mono text-[28px] font-bold tracking-tight ${alert.threatScore >= 80 ? 'text-[#f85149]' : alert.threatScore >= 50 ? 'text-[#d29922]' : 'text-accent'}`}>
                 {alert.threatScore}
               </span>
               <span className="font-mono text-[10px] text-on-surface-variant">/ 100</span>
@@ -71,22 +71,46 @@ const AlertDetail = ({ alert, onUpdateStatus, onBack }) => {
           {/* Severity Classification */}
           <div className="bg-surface border border-border rounded p-3 card-hover">
             <span className="font-sans text-[9px] font-bold text-on-surface-variant uppercase block mb-1">Severity level</span>
-            <div className="flex items-center gap-xs">
-              <span className={`material-symbols-outlined text-[14px] ${sevStyle.text}`}>
+            <div className="flex items-center gap-xs mb-2">
+              <span className={`material-symbols-outlined text-[16px] ${sevStyle.text}`}>
                 {alert.threatScore >= 80 ? 'warning' : alert.threatScore >= 50 ? 'report' : 'info'}
               </span>
               <span className={`font-mono text-[11px] font-bold uppercase tracking-wider ${sevStyle.text}`}>
                 {alert.severity} INCIDENT
               </span>
             </div>
-            {alert.mitreTechnique && (
-              <div className="mt-2 pt-2 border-t border-border/40 flex gap-sm flex-wrap">
-                <div className={`inline-flex items-center gap-xs px-2 py-0.5 rounded border text-[9px] font-mono font-bold ${sevStyle.border}`}>
-                  <span className="material-symbols-outlined text-[11px]">local_fire_department</span>
-                  <span>{alert.mitreTechnique}</span>
-                </div>
+
+            <div className="pt-2 border-t border-border/40 space-y-1.5">
+              <div className="flex justify-between items-center text-[10px]">
+                <span className="font-sans text-on-surface-variant font-bold uppercase">Status</span>
+                <span className="font-mono font-bold text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/30 uppercase">
+                  {alert.status}
+                </span>
               </div>
-            )}
+              <div className="flex justify-between items-center text-[10px]">
+                <span className="font-sans text-on-surface-variant font-bold uppercase">Detector</span>
+                <span className="font-mono text-on-surface font-semibold">
+                  {alert.attack}
+                </span>
+              </div>
+              <div className="flex justify-between items-center text-[10px]">
+                <span className="font-sans text-on-surface-variant font-bold uppercase">MITRE Tech</span>
+                <span className="font-mono text-accent font-bold">
+                  {alert.technique}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Recommendation Box */}
+          <div className="bg-surface border border border-accent/40 rounded p-3 card-hover">
+            <div className="flex items-center gap-xs text-accent mb-1.5">
+              <span className="material-symbols-outlined text-[14px]">psychology</span>
+              <span className="font-sans text-[9px] font-bold uppercase tracking-wider">SOAR Recommendation</span>
+            </div>
+            <p className="font-sans text-[11px] text-on-surface leading-snug">
+              {alert.recommendation}
+            </p>
           </div>
         </div>
 
@@ -98,27 +122,27 @@ const AlertDetail = ({ alert, onUpdateStatus, onBack }) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
               <div className="flex flex-col">
                 <span className="font-sans text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">Alert ID</span>
-                <span className="font-mono text-[11px] text-on-surface font-semibold">{alert.id}</span>
+                <span className="font-mono text-[11px] text-on-surface font-semibold">#{alert.id}</span>
               </div>
               <div className="flex flex-col">
                 <span className="font-sans text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">User Account</span>
                 <div className="flex items-center gap-xs">
                   <span className="material-symbols-outlined text-[12px] text-on-surface-variant">person</span>
-                  <span className="font-mono text-[11px] text-on-surface">{alert.userAccount || 'SYSTEM'}</span>
+                  <span className="font-mono text-[11px] text-on-surface">{alert.username}</span>
                 </div>
               </div>
               <div className="flex flex-col">
                 <span className="font-sans text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">Source IP</span>
                 <div className="flex items-center gap-xs">
                   <span className="material-symbols-outlined text-[12px] text-[#f85149]">public</span>
-                  <span className="font-mono text-[11px] text-[#f85149] font-bold">{alert.sourceIp || alert.ip}</span>
+                  <span className="font-mono text-[11px] text-[#f85149] font-bold">{alert.sourceIp}</span>
                 </div>
               </div>
               <div className="flex flex-col">
                 <span className="font-sans text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">Destination Host</span>
                 <div className="flex items-center gap-xs">
                   <span className="material-symbols-outlined text-[12px] text-accent">dns</span>
-                  <span className="font-mono text-[11px] text-on-surface">{alert.destination || 'N/A'}</span>
+                  <span className="font-mono text-[11px] text-on-surface">{alert.destination}</span>
                 </div>
               </div>
             </div>

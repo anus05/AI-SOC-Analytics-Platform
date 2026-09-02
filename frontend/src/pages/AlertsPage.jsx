@@ -1,143 +1,135 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAlerts } from '../hooks/useAlerts';
+import { useToast } from '../components/common/Toast';
 import AlertFilters from '../components/alerts/AlertFilters';
 import AlertTable from '../components/alerts/AlertTable';
 
 const AlertsPage = () => {
-  const { getAlerts, loading, error } = useAlerts();
+  const { getAlerts, loading } = useAlerts();
+  const toast = useToast();
   const navigate = useNavigate();
 
-  const [alerts, setAlerts] = useState([]);
-  const [filteredAlerts, setFilteredAlerts] = useState([]);
+  const [alertsData, setAlertsData] = useState({ alerts: [], total: 0, page: 1, size: 10, total_pages: 1 });
   const [searchTerm, setSearchTerm] = useState('');
   const [activeFilter, setActiveFilter] = useState('ALL');
-  const [visibleCount, setVisibleCount] = useState(15);
+  const [page, setPage] = useState(1);
+  const [sortField, setSortField] = useState('id');
+  const [sortDirection, setSortDirection] = useState('desc');
+  const [error, setError] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    const loadAlerts = async () => {
-      const data = await getAlerts();
-      if (active) {
-        setAlerts(data);
-        setFilteredAlerts(data);
-      }
-    };
-    loadAlerts();
-    return () => { active = false; };
-  }, [getAlerts]);
-
-  // Handle Search and Filter changes
-  useEffect(() => {
-    let result = [...alerts];
-
-    // Filter by Category
-    if (activeFilter !== 'ALL') {
-      const filter = activeFilter.toUpperCase();
-      result = result.filter(item => {
-        const itemSeverity = (item.severity || '').toUpperCase();
-        const itemTitle = (item.title || '').toUpperCase();
-        const itemMitre = (item.mitreTechnique || '').toUpperCase();
-        
-        if (filter === 'CRITICAL' || filter === 'HIGH' || filter === 'MEDIUM' || filter === 'LOW') {
-          return itemSeverity === filter;
-        } else if (filter === 'BRUTE FORCE') {
-          return itemTitle.includes('BRUTE FORCE') || itemMitre.includes('BRUTE FORCE') || itemMitre.includes('T1110');
-        } else if (filter === 'MALWARE') {
-          return itemTitle.includes('MALWARE') || itemTitle.includes('RANSOMWARE') || itemMitre.includes('T1562');
-        }
-        return true;
+  const fetchAlerts = useCallback(async (isManual = false) => {
+    if (isManual) setIsRefreshing(true);
+    try {
+      setError(null);
+      const res = await getAlerts({
+        page,
+        size: 10,
+        severity: activeFilter !== 'ALL' && ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(activeFilter) ? activeFilter : undefined,
+        attack: activeFilter !== 'ALL' && !['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].includes(activeFilter) ? activeFilter : undefined,
+        search: searchTerm || undefined,
+        sort_by: sortField,
+        order: sortDirection
       });
+      setAlertsData(res);
+      if (isManual) toast.success("Incident log registry synchronized from PostgreSQL.");
+    } catch (err) {
+      setError(err.message || "Failed to fetch alert logs.");
+      toast.error(err.message || "Alert fetch error.");
+    } finally {
+      setIsRefreshing(false);
     }
+  }, [getAlerts, page, activeFilter, searchTerm, sortField, sortDirection, toast]);
 
-    // Filter by Search Query
-    if (searchTerm.trim() !== '') {
-      const query = searchTerm.toUpperCase();
-      result = result.filter(item => 
-        (item.id || '').toUpperCase().includes(query) ||
-        (item.sourceIp || item.ip || '').toUpperCase().includes(query) ||
-        (item.title || '').toUpperCase().includes(query) ||
-        (item.userAccount || '').toUpperCase().includes(query) ||
-        (item.destination || '').toUpperCase().includes(query)
-      );
-    }
+  useEffect(() => {
+    fetchAlerts();
+    const interval = setInterval(() => {
+      fetchAlerts();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [fetchAlerts]);
 
-    setFilteredAlerts(result);
-    setVisibleCount(15);
-  }, [searchTerm, activeFilter, alerts]);
+  const handleFilterChange = (newFilter) => {
+    setActiveFilter(newFilter);
+    setPage(1);
+  };
+
+  const handleSearchChange = (term) => {
+    setSearchTerm(term);
+    setPage(1);
+  };
+
+  const handleSortChange = (field, direction) => {
+    setSortField(field);
+    setSortDirection(direction);
+    setPage(1);
+  };
 
   const handleSelectAlert = (alert) => {
     navigate(`/alerts/${alert.id}`);
   };
 
-  const isDataLoading = loading && alerts.length === 0;
-
   return (
     <div className="flex flex-col gap-sm max-w-[1600px] mx-auto w-full">
-      <div className="flex flex-col">
-        <h1 className="font-sans text-[16px] font-bold text-on-surface uppercase tracking-wide">
-          Threat Registry Logs
-        </h1>
-        <p className="font-sans text-[11px] text-on-surface-variant">
-          Realtime telemetry flow of flagged security anomalies and system triggers.
-        </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-sm">
+        <div>
+          <h1 className="font-sans text-[16px] font-bold text-on-surface uppercase tracking-wide">
+            Threat Registry Logs
+          </h1>
+          <p className="font-sans text-[11px] text-on-surface-variant">
+            PostgreSQL query results for flagged security anomalies, detector alerts, and ML predictions.
+          </p>
+        </div>
+        <button
+          onClick={() => fetchAlerts(true)}
+          disabled={isRefreshing || loading}
+          className="flex items-center gap-xs px-3 py-1.5 rounded bg-surface border border-border text-on-surface hover:text-accent font-mono text-[10px] transition-all cursor-pointer disabled:opacity-50 select-none"
+        >
+          <span className={`material-symbols-outlined text-[14px] ${isRefreshing ? 'animate-spin text-accent' : ''}`}>
+            refresh
+          </span>
+          <span>{isRefreshing ? 'Syncing...' : 'Sync Logs'}</span>
+        </button>
       </div>
 
-      {/* Connection Warning Banner */}
+      {/* Error Banner */}
       {error && (
-        <div className="p-2 border border-severity-high/30 bg-severity-high/10 text-severity-high font-mono text-[10px] rounded flex justify-between items-center gap-sm animate-fade-in">
+        <div className="p-3 border border-[#f85149]/40 bg-[#f85149]/10 text-[#f85149] font-mono text-[11px] rounded flex justify-between items-center gap-sm animate-fade-in">
           <div className="flex items-center gap-xs">
-            <span className="material-symbols-outlined text-[14px]">wifi_off</span>
+            <span className="material-symbols-outlined text-[16px]">wifi_off</span>
             <span>{error}</span>
           </div>
+          <button
+            onClick={() => fetchAlerts(true)}
+            className="px-3 py-1 rounded bg-[#f85149] text-white font-sans text-[10px] font-bold uppercase tracking-wider hover:bg-[#da3633] transition-colors cursor-pointer"
+          >
+            Retry Fetch
+          </button>
         </div>
       )}
 
       {/* Filter Chips & Search inputs */}
       <AlertFilters 
         searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
+        onSearchChange={handleSearchChange}
         activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
+        onFilterChange={handleFilterChange}
       />
 
-      {isDataLoading ? (
-        <AlertTable loading={true} />
-      ) : filteredAlerts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-8 border border-dashed border-border rounded bg-surface text-on-surface-variant font-mono text-[11px] text-center my-2">
-          <span className="material-symbols-outlined mb-2 text-[20px] text-accent">report_off</span>
-          <span className="font-semibold text-on-surface uppercase">No alerts match your filters</span>
-          <button
-            onClick={() => {
-              setSearchTerm('');
-              setActiveFilter('ALL');
-            }}
-            className="mt-3 font-sans text-[10px] uppercase font-bold tracking-wider text-accent border border-[#30363d] hover:border-accent hover:bg-accent/10 transition-all cursor-pointer px-3 py-1 rounded bg-background"
-          >
-            Clear Filters
-          </button>
-        </div>
-      ) : (
-        <>
-          {/* Dense Table View */}
-          <AlertTable 
-            alerts={filteredAlerts.slice(0, visibleCount)}
-            onSelectAlert={handleSelectAlert}
-          />
-
-          {/* Load More Button */}
-          {filteredAlerts.length > visibleCount && (
-            <div className="flex justify-center items-center w-full py-2">
-              <button 
-                onClick={() => setVisibleCount(prev => prev + 15)}
-                className="font-mono text-[9px] uppercase font-bold tracking-wider text-accent hover:text-white transition-colors cursor-pointer select-none px-3 py-1.5 bg-surface rounded border border-border"
-              >
-                LOAD MORE ALERTS
-              </button>
-            </div>
-          )}
-        </>
-      )}
+      {/* Paginated Alert Table */}
+      <AlertTable 
+        alerts={alertsData.alerts}
+        loading={loading && alertsData.alerts.length === 0}
+        page={alertsData.page}
+        totalPages={alertsData.total_pages}
+        totalItems={alertsData.total}
+        onPageChange={(newPage) => setPage(newPage)}
+        sortField={sortField}
+        sortDirection={sortDirection}
+        onSortChange={handleSortChange}
+        onSelectAlert={handleSelectAlert}
+      />
     </div>
   );
 };

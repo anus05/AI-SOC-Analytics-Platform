@@ -381,4 +381,4 @@ For issues, questions, or feature requests, please open an issue on the GitHub r
 
 ---
 
-**Last Updated**: September 2026
+**Last Updated**: August 2026

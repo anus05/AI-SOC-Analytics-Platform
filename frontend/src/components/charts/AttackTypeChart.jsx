@@ -22,11 +22,7 @@ const AttackTypeChart = ({ dataPoints, totalAlerts = 1284, loading }) => {
         next.delete(type);
       } else {
         // Prevent hiding all categories
-        const allItems = dataPoints || [
-          { type: 'Brute Force', percentage: 45 },
-          { type: 'Password Spray', percentage: 30 },
-          { type: 'Port Scan', percentage: 25 }
-        ];
+        const allItems = dataPoints || [];
         if (next.size < allItems.length - 1) {
           next.add(type);
         }
@@ -48,11 +44,7 @@ const AttackTypeChart = ({ dataPoints, totalAlerts = 1284, loading }) => {
     );
   }
 
-  const allItems = dataPoints || [
-    { type: 'Brute Force', percentage: 45 },
-    { type: 'Password Spray', percentage: 30 },
-    { type: 'Port Scan', percentage: 25 }
-  ];
+  const allItems = dataPoints || [];
 
   const visibleItems = allItems.filter(item => !hiddenCategories.has(item.type));
 

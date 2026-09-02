@@ -1,162 +1,53 @@
 import { useState, useCallback } from 'react';
 import client from '../api/client';
 
-// Mock data corresponding to Stitch design specs
-const mockDashboard = {
-  totalAlerts: 1284,
-  totalAlertsDiff: "+12%",
-  highSeverity: 14,
-  threatScore: 84,
-  detectionsToday: 42,
-  alertsTrend: [
-    { time: '00:00', count: 12 },
-    { time: '04:00', count: 25 },
-    { time: '08:00', count: 48 },
-    { time: '12:00', count: 18 },
-    { time: '16:00', count: 32 },
-    { time: '20:00', count: 54 },
-    { time: 'Now', count: 42 }
-  ],
-  attackTypes: [
-    { type: 'Brute Force', percentage: 45 },
-    { type: 'Password Spray', percentage: 30 },
-    { type: 'Port Scan', percentage: 25 }
-  ],
-  recentAlerts: [
-    { id: 'ALRT-9042', severity: 'CRITICAL', title: 'Impossible Travel', target: 'DB-Prod-01', time: '2m ago', ip: '192.168.1.1' },
-    { id: 'ALRT-9041', severity: 'HIGH', title: 'Brute Force Attempt', target: 'svc_deploy_admin', time: '15m ago', ip: '45.22.19.102' },
-    { id: 'ALRT-9040', severity: 'MEDIUM', title: 'Unusual Data Exfiltration Volume', target: '10.0.4.55', time: '1h ago', ip: '10.0.4.55' },
-    { id: 'ALRT-9039', severity: 'HIGH', title: 'Multiple Failed Logins (Admin)', target: 'WS-Finance-04', time: '3h ago', ip: '172.16.0.2' },
-    { id: 'ALRT-9038', severity: 'LOW', title: 'Config File Changed', target: 'Nginx-Proxy', time: '4h ago', ip: '192.168.12.4' }
-  ]
-};
+export const normalizeAlert = (raw) => {
+  if (!raw) return null;
+  const attackName = raw.attack || raw.detector || raw.title || 'Security Incident';
+  const ipAddr = raw.source_ip || raw.sourceIp || raw.ip || '127.0.0.1';
+  const scoreVal = raw.threat_score ?? raw.threatScore ?? raw.score ?? 0;
+  const sevVal = (raw.severity || 'LOW').toUpperCase();
+  const techVal = raw.technique || raw.mitreTechnique || 'T1110';
+  const userVal = raw.username || raw.user_account || raw.userAccount || 'SYSTEM';
+  const destVal = raw.destination_ip || raw.destination || raw.target || 'auth.internal.corp';
+  const timeVal = raw.time || 'Recent';
+  const statusVal = raw.status || 'New';
 
-const mockStatistics = {
-  detectionAccuracy: 96.4,
-  attackVectorDistribution: [
-    { name: 'DDoS / Botnet', value: 45, color: '#00dbe7' },
-    { name: 'SQL Injection', value: 25, color: '#ffb4ab' },
-    { name: 'Malware / Ransomware', value: 15, color: '#ffd58c' },
-    { name: 'Phishing attempts', value: 15, color: '#00f2ff' }
-  ],
-  topMaliciousIps: [
-    { rank: '#1', ip: '192.168.1.104', hits: '14,205', country: 'Russia', level: 'Critical' },
-    { rank: '#2', ip: '10.0.0.52', hits: '9,842', country: 'China', level: 'Critical' },
-    { rank: '#3', ip: '172.16.254.1', hits: '5,102', country: 'Unknown', level: 'High' },
-    { rank: '#4', ip: '8.8.8.8', hits: '3,450', country: 'USA', level: 'High' }
-  ]
+  return {
+    ...raw,
+    id: raw.id,
+    title: attackName,
+    attack: attackName,
+    detector: attackName,
+    sourceIp: ipAddr,
+    source_ip: ipAddr,
+    ip: ipAddr,
+    threatScore: scoreVal,
+    threat_score: scoreVal,
+    score: scoreVal,
+    severity: sevVal,
+    mitreTechnique: techVal,
+    technique: techVal,
+    recommendation: raw.recommendation || 'Block malicious IP and review system logs.',
+    userAccount: userVal,
+    user_account: userVal,
+    username: userVal,
+    destination: destVal,
+    destination_ip: destVal,
+    target: destVal,
+    time: timeVal,
+    timestamp: raw.timestamp || raw.created_at || new Date().toISOString(),
+    created_at: raw.created_at || new Date().toISOString(),
+    status: statusVal,
+    rawLog: raw.rawLog || {
+      timestamp: raw.created_at || new Date().toISOString(),
+      event_type: attackName.toLowerCase().replace(/\s+/g, '_'),
+      actor: { ip: ipAddr, user: userVal },
+      target: { host: destVal, port: 22 },
+      action: { severity: sevVal, threat_score: scoreVal }
+    }
+  };
 };
-
-const mockAlerts = [
-  {
-    id: 'VGL-2023-8894A',
-    severity: 'CRITICAL',
-    title: 'Impossible Travel Detected',
-    sourceIp: '185.199.108.153',
-    destination: 'auth.internal.corp (10.0.4.22)',
-    userAccount: 'svc_deploy_admin',
-    time: '2m ago',
-    threatScore: 88,
-    mitreTechnique: 'T1110 - Brute Force',
-    status: 'New',
-    rawLog: {
-      timestamp: "2026-07-26T12:08:32.451Z",
-      event_type: "authentication_failure",
-      actor: {
-        ip: "185.199.108.153",
-        user: "svc_deploy_admin"
-      },
-      target: {
-        host: "auth.internal.corp",
-        port: 443
-      },
-      action: {
-        name: "login_attempt",
-        result: "denied",
-        reason: "invalid_credentials"
-      },
-      threat_intel: {
-        reputation: "malicious",
-        tags: ["tor_exit_node", "impossible_travel"]
-      }
-    }
-  },
-  {
-    id: 'ALRT-9041',
-    severity: 'HIGH',
-    title: 'Brute Force Attack (SSH)',
-    sourceIp: '45.22.19.102',
-    destination: 'SSH-Gateway-01 (10.0.1.5)',
-    userAccount: 'admin',
-    time: '15m ago',
-    threatScore: 78,
-    mitreTechnique: 'T1110.001 - Password Guessing',
-    status: 'New',
-    rawLog: {
-      timestamp: "2026-07-26T11:55:00.000Z",
-      event_type: "ssh_failed_login",
-      actor: { ip: "45.22.19.102", user: "admin" },
-      failures_count: 142,
-      target: { host: "SSH-Gateway-01", port: 22 }
-    }
-  },
-  {
-    id: 'ALRT-9040',
-    severity: 'MEDIUM',
-    title: 'Unusual Data Exfiltration Volume',
-    sourceIp: '10.0.4.55',
-    destination: 'S3-Backup-Bucket (External)',
-    userAccount: 'backup_service',
-    time: '1h ago',
-    threatScore: 56,
-    mitreTechnique: 'T1048 - Exfiltration Over Alternative Protocol',
-    status: 'New',
-    rawLog: {
-      timestamp: "2026-07-26T11:10:12.000Z",
-      event_type: "data_transfer",
-      transferred_mb: 8520,
-      average_daily_mb: 120,
-      actor: { ip: "10.0.4.55", user: "backup_service" }
-    }
-  },
-  {
-    id: 'ALRT-9039',
-    severity: 'HIGH',
-    title: 'Multiple Failed Logins (Admin Portal)',
-    sourceIp: '172.16.0.2',
-    destination: 'web.internal.corp (10.0.4.10)',
-    userAccount: 'admin_test',
-    time: '3h ago',
-    threatScore: 72,
-    mitreTechnique: 'T1110 - Brute Force',
-    status: 'New',
-    rawLog: {
-      timestamp: "2026-07-26T09:12:44.000Z",
-      event_type: "portal_auth_failed",
-      attempts: 8,
-      user_agent: "Mozilla/5.0 Python-urllib/3.9",
-      actor: { ip: "172.16.0.2", user: "admin_test" }
-    }
-  },
-  {
-    id: 'ALRT-9038',
-    severity: 'LOW',
-    title: 'Config File Changed',
-    sourceIp: '192.168.12.4',
-    destination: 'Nginx-Proxy (10.0.2.1)',
-    userAccount: 'nginx_config_mgr',
-    time: '4h ago',
-    threatScore: 28,
-    mitreTechnique: 'T1562 - Impair Defenses',
-    status: 'Dismissed',
-    rawLog: {
-      timestamp: "2026-07-26T08:15:30.000Z",
-      event_type: "file_modified",
-      path: "/etc/nginx/nginx.conf",
-      actor: { ip: "192.168.12.4", user: "nginx_config_mgr" }
-    }
-  }
-];
 
 export const useAlerts = () => {
   const [loading, setLoading] = useState(false);
@@ -167,13 +58,35 @@ export const useAlerts = () => {
     setError(null);
     try {
       const response = await client.get('/dashboard');
+      const data = response.data || {};
       setLoading(false);
-      return response.data;
+
+      return {
+        totalAlerts: data.totalAlerts ?? data.total_alerts ?? 0,
+        total_alerts: data.totalAlerts ?? data.total_alerts ?? 0,
+        criticalAlerts: data.criticalAlerts ?? data.critical_alerts ?? data.critical ?? 0,
+        highSeverity: data.highSeverity ?? data.high_alerts ?? data.high ?? 0,
+        mediumSeverity: data.medium ?? data.medium_alerts ?? 0,
+        lowSeverity: data.low ?? data.low_alerts ?? 0,
+        threatScore: data.threatScore ?? data.avg_threat_score ?? 0,
+        detectionsToday: data.detectionsToday ?? data.today_detections ?? 0,
+        topAttackType: data.topAttackType ?? data.top_attack_type ?? 'None',
+        totalAlertsDiff: data.totalAlertsDiff || '0%',
+        alertsTrend: Array.isArray(data.alertsTrend || data.alerts_trend)
+          ? (data.alertsTrend || data.alerts_trend)
+          : [],
+        attackTypes: Array.isArray(data.attackTypes || data.attack_types)
+          ? (data.attackTypes || data.attack_types)
+          : [],
+        recentAlerts: Array.isArray(data.recentAlerts || data.recent_alerts)
+          ? (data.recentAlerts || data.recent_alerts).map(normalizeAlert)
+          : []
+      };
     } catch (err) {
-      console.warn("Backend API not reachable. Using mock dashboard telemetry.");
-      setError("Unable to sync dashboard telemetry with server. Displaying offline cached logs.");
+      const msg = err.response?.data?.detail || 'Failed to fetch real-time dashboard telemetry from PostgreSQL.';
+      setError(msg);
       setLoading(false);
-      return mockDashboard;
+      throw new Error(msg);
     }
   }, []);
 
@@ -182,28 +95,77 @@ export const useAlerts = () => {
     setError(null);
     try {
       const response = await client.get('/statistics');
+      const data = response.data || {};
       setLoading(false);
-      return response.data;
+
+      return {
+        totalAlerts: data.totalAlerts ?? data.total_alerts ?? 0,
+        critical: data.critical ?? 0,
+        high: data.high ?? 0,
+        medium: data.medium ?? 0,
+        low: data.low ?? 0,
+        alertsBySeverity: data.alerts_by_severity || {},
+        detectionAccuracy: data.detectionAccuracy ?? data.detection_accuracy ?? 0,
+        attackVectorDistribution: Array.isArray(data.attackVectorDistribution || data.attack_distribution)
+          ? (data.attackVectorDistribution || data.attack_distribution)
+          : [],
+        mitreDistribution: Array.isArray(data.mitre_distribution)
+          ? data.mitre_distribution
+          : [],
+        topMaliciousIps: Array.isArray(data.topMaliciousIps || data.top_malicious_ips)
+          ? (data.topMaliciousIps || data.top_malicious_ips)
+          : [],
+        dailyDetections: data.daily_detections ?? 0,
+        weeklyTrend: Array.isArray(data.weekly_trend) ? data.weekly_trend : []
+      };
     } catch (err) {
-      console.warn("Backend API not reachable. Using mock stats telemetry.");
-      setError("Unable to sync telemetry stats with server. Displaying offline cached metrics.");
+      const msg = err.response?.data?.detail || 'Failed to fetch statistics telemetry from PostgreSQL.';
+      setError(msg);
       setLoading(false);
-      return mockStatistics;
+      throw new Error(msg);
     }
   }, []);
 
-  const getAlerts = useCallback(async () => {
+  const getAlerts = useCallback(async (params = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await client.get('/alerts');
+      const queryParams = new URLSearchParams();
+      if (params.page) queryParams.append('page', params.page);
+      if (params.size) queryParams.append('size', params.size);
+      if (params.severity && params.severity !== 'ALL') queryParams.append('severity', params.severity);
+      if (params.attack) queryParams.append('attack', params.attack);
+      if (params.source_ip) queryParams.append('source_ip', params.source_ip);
+      if (params.search) queryParams.append('search', params.search);
+      if (params.sort_by) queryParams.append('sort_by', params.sort_by);
+      if (params.order) queryParams.append('order', params.order);
+
+      const url = `/alerts${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+      const response = await client.get(url);
       setLoading(false);
-      return response.data;
+
+      if (Array.isArray(response.data)) {
+        return {
+          alerts: response.data.map(normalizeAlert),
+          total: response.data.length,
+          page: 1,
+          size: response.data.length,
+          total_pages: 1
+        };
+      }
+
+      return {
+        alerts: (response.data?.alerts || []).map(normalizeAlert),
+        total: response.data?.total || 0,
+        page: response.data?.page || 1,
+        size: response.data?.size || 10,
+        total_pages: response.data?.total_pages || 1
+      };
     } catch (err) {
-      console.warn("Backend API not reachable. Using mock alerts.");
-      setError("Unable to sync registry logs with server. Displaying offline cached registry.");
+      const msg = err.response?.data?.detail || 'Failed to fetch incident log registry from PostgreSQL.';
+      setError(msg);
       setLoading(false);
-      return mockAlerts;
+      throw new Error(msg);
     }
   }, []);
 
@@ -213,38 +175,27 @@ export const useAlerts = () => {
     try {
       const response = await client.get(`/alerts/${id}`);
       setLoading(false);
-      return response.data;
+      return normalizeAlert(response.data);
     } catch (err) {
-      console.warn(`Backend API not reachable. Resolving mock detail for ID: ${id}`);
-      setError("Unable to sync incident audit detail. Displaying offline cached copy.");
+      const msg = err.response?.data?.detail || `Incident alert #${id} not found in database.`;
+      setError(msg);
       setLoading(false);
-      const alert = mockAlerts.find(a => a.id === id) || mockAlerts[0];
-      return alert;
+      throw new Error(msg);
     }
   }, []);
 
   const performScan = useCallback(async (scanTarget) => {
     setLoading(true);
     setError(null);
-    // Add artificial delay for scan
-    await new Promise(resolve => setTimeout(resolve, 1500));
     try {
       const response = await client.post('/scan', { target: scanTarget });
       setLoading(false);
       return response.data;
     } catch (err) {
-      console.warn("Backend API not reachable. Performing mock network scan.");
-      setError("Vulnerability scan gateway timed out. Displaying local simulated audit.");
+      const msg = err.response?.data?.detail || 'Live threat auditor scan request failed.';
+      setError(msg);
       setLoading(false);
-      return {
-        status: "success",
-        target: scanTarget,
-        alerts_found: 2,
-        details: [
-          { type: "Port Scan", details: "Detected network port sweep activities on target gateway." },
-          { type: "Brute Force", details: "Flagged multiple active credential verification requests on auth service." }
-        ]
-      };
+      throw new Error(msg);
     }
   }, []);
 
@@ -252,20 +203,14 @@ export const useAlerts = () => {
     setLoading(true);
     setError(null);
     try {
-      await client.put(`/alerts/${id}`, { status });
+      const response = await client.put(`/alerts/${id}`, { status });
       setLoading(false);
-      return true;
+      return normalizeAlert(response.data);
     } catch (err) {
-      console.warn("Backend API not reachable. Updating mock status in memory.");
-      if (err.response) {
-        setError("Update rejected by the host authorization filter.");
-        setLoading(false);
-        return false;
-      }
-      const alert = mockAlerts.find(a => a.id === id);
-      if (alert) alert.status = status;
+      const msg = err.response?.data?.detail || 'Failed to update alert status in database.';
+      setError(msg);
       setLoading(false);
-      return true;
+      throw new Error(msg);
     }
   }, []);
 

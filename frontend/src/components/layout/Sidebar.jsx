@@ -10,18 +10,23 @@ const Sidebar = () => {
     { path: '/statistics', label: 'TELEMETRY', icon: 'analytics' },
   ];
 
+  const aiModuleItems = [
+    { path: '/investigation', label: 'AI INVESTIGATION', icon: 'psychology' },
+    { path: '/attack-timeline', label: 'ATTACK CHAINS', icon: 'hub' },
+    { path: '/threat-intel', label: 'THREAT INTEL', icon: 'travel_explore' },
+    { path: '/reports', label: 'INCIDENT REPORTS', icon: 'description' },
+  ];
+
   return (
     <>
       {/* Desktop Left Sidebar Nav - Hidden on mobile */}
       <aside className="hidden md:flex flex-col w-56 bg-surface border-r border-border min-h-[calc(100vh-48px)] p-3 gap-sm shrink-0">
         <span className="font-sans text-[9px] font-bold text-on-surface-variant tracking-wider uppercase mb-1">Navigation Menu</span>
         <div className="flex flex-col gap-[4px]">
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
+          {navItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
                 className={({ isActive }) => `
                   flex items-center gap-sm px-3 py-1.5 rounded transition-all select-none border
                   ${isActive 
@@ -35,8 +40,30 @@ const Sidebar = () => {
                 </span>
                 <span className="font-sans text-[11px] font-bold tracking-wide">{item.label}</span>
               </NavLink>
-            );
-          })}
+          ))}
+        </div>
+
+        {/* AI Enterprise Modules Section Separator */}
+        <span className="font-sans text-[9px] font-bold text-accent tracking-wider uppercase mt-3 mb-1">AI Modules</span>
+        <div className="flex flex-col gap-[4px]">
+          {aiModuleItems.map((item) => (
+            <NavLink
+              key={item.path}
+              to={item.path}
+                className={({ isActive }) => `
+                  flex items-center gap-sm px-3 py-1.5 rounded transition-all select-none border
+                  ${isActive 
+                    ? 'bg-[#1f242c] border-border text-accent font-bold' 
+                    : 'border-transparent text-on-surface-variant hover:text-on-surface hover:bg-[#161b22]'
+                  }
+                `}
+              >
+                <span className="material-symbols-outlined text-[15px]">
+                  {item.icon}
+                </span>
+                <span className="font-sans text-[11px] font-bold tracking-wide">{item.label}</span>
+              </NavLink>
+          ))}
         </div>
         
         {/* Connection status in sidebar footer */}
@@ -53,15 +80,15 @@ const Sidebar = () => {
       </aside>
 
       {/* Mobile Bottom Navigation Bar - Hidden on desktop */}
-      <nav className="md:hidden bg-surface text-on-surface-variant fixed bottom-0 left-0 w-full z-50 border-t border-border flex justify-around items-center h-12 pb-px shadow-sm">
-        {navItems.map((item) => {
+      <nav className="md:hidden bg-surface text-on-surface-variant fixed bottom-0 left-0 w-full z-50 border-t border-border flex justify-around items-center h-12 pb-px shadow-sm overflow-x-auto">
+        {[...navItems, ...aiModuleItems].map((item) => {
           const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
           return (
             <NavLink
               key={item.path}
               to={item.path}
               className={`
-                flex flex-col items-center justify-center transition-all duration-100 ease-in-out w-16
+                flex flex-col items-center justify-center transition-all duration-100 ease-in-out w-14 shrink-0
                 ${isActive 
                   ? 'text-accent font-bold' 
                   : 'text-on-surface-variant hover:text-accent'
@@ -71,7 +98,7 @@ const Sidebar = () => {
               <span className="material-symbols-outlined text-[18px]">
                 {item.icon}
               </span>
-              <span className="font-sans text-[9px] font-bold tracking-wider mt-px">{item.label.split(' ')[0]}</span>
+              <span className="font-sans text-[7px] font-bold tracking-wider mt-px">{item.label.split(' ')[0]}</span>
             </NavLink>
           );
         })}

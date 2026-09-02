@@ -17,14 +17,26 @@ from sklearn.model_selection import train_test_split
 
 warnings.filterwarnings("ignore")
 
-# ==========================================================
-# Configuration
-# ==========================================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DATA_PATH = "data/ml_dataset.csv"
 
-MODEL_DIR = "models"
-REPORT_DIR = "reports"
+def resolve_path(rel_path):
+    if os.path.isabs(rel_path) and os.path.exists(rel_path):
+        return rel_path
+    candidates = [
+        rel_path,
+        os.path.join(BASE_DIR, rel_path),
+        os.path.join(BASE_DIR, "..", rel_path)
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return os.path.abspath(c)
+    return os.path.abspath(os.path.join(BASE_DIR, rel_path))
+
+
+DATA_PATH = resolve_path("data/ml_dataset.csv")
+MODEL_DIR = resolve_path("models")
+REPORT_DIR = resolve_path("reports")
 
 os.makedirs(MODEL_DIR, exist_ok=True)
 os.makedirs(REPORT_DIR, exist_ok=True)
@@ -33,11 +45,12 @@ os.makedirs(REPORT_DIR, exist_ok=True)
 # Helper Function
 # ==========================================================
 
-def section(title):
 
+def section(title):
     print("\n" + "=" * 70)
     print(title)
     print("=" * 70)
+
 
 # ==========================================================
 # Load Dataset
@@ -45,11 +58,16 @@ def section(title):
 
 section("Loading Dataset")
 
+if not os.path.exists(DATA_PATH):
+    print(f"[!] Dataset not found at {DATA_PATH}. Please run preprocessing first.")
+    exit(0)
+
 df = pd.read_csv(DATA_PATH)
 
 print("Dataset Loaded Successfully")
 
 print("Shape :", df.shape)
+
 
 # ==========================================================
 # Split Features and Target

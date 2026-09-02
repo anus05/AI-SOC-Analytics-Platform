@@ -10,32 +10,55 @@ Prediction Module
 # ==========================================================
 
 import os
+import sys
 import warnings
 import joblib
+import numpy as np
 import pandas as pd
 
 warnings.filterwarnings("ignore")
 
 # ==========================================================
-# Configuration
+# Dynamic Path Resolution
 # ==========================================================
 
-MODEL_PATH = "models/best_model.pkl"
-ENCODER_PATH = "models/label_encoder.pkl"
-FEATURE_PATH = "models/feature_names.txt"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DATASET_PATH = "data/ml_dataset.csv"
-INPUT_FILE = "data/new_network_data.csv"
-OUTPUT_FILE = "data/prediction_results.csv"
+
+def resolve_path(rel_path):
+    if os.path.exists(rel_path):
+        return os.path.abspath(rel_path)
+    from_base = os.path.join(BASE_DIR, rel_path)
+    if os.path.exists(from_base):
+        return os.path.abspath(from_base)
+    return os.path.abspath(from_base)
+
+
+MODEL_PATH = resolve_path("models/best_model.pkl")
+ENCODER_PATH = resolve_path("models/label_encoder.pkl")
+FEATURE_PATH = resolve_path("models/feature_names.txt")
+
+DATASET_PATH = resolve_path("data/ml_dataset.csv")
+INPUT_FILE = resolve_path("data/new_network_data.csv")
+OUTPUT_FILE = resolve_path("data/prediction_results.csv")
 
 # ==========================================================
 # Helper Function
 # ==========================================================
 
+
 def section(title):
     print("\n" + "=" * 70)
     print(title)
     print("=" * 70)
+
+
+def safe_print(msg):
+    try:
+        print(msg)
+    except UnicodeEncodeError:
+        print(str(msg).encode("ascii", "replace").decode("ascii"))
+
 
 # ==========================================================
 # Check Required Files
@@ -46,15 +69,14 @@ section("Checking Required Files")
 required_files = [
     MODEL_PATH,
     ENCODER_PATH,
-    FEATURE_PATH,
-    DATASET_PATH
+    FEATURE_PATH
 ]
 
 for file in required_files:
     if not os.path.exists(file):
         raise FileNotFoundError(f"\nRequired file not found:\n{file}")
 
-print("All Required Files Found")
+print("All Core Model Files Found")
 
 # ==========================================================
 # Load Model
@@ -72,38 +94,42 @@ print("Label Encoder Loaded Successfully")
 # Load Feature Names
 # ==========================================================
 
-with open(FEATURE_PATH, "r") as f:
-    feature_names = [line.strip() for line in f.readlines()]
+with open(FEATURE_PATH, "r", encoding="utf-8", errors="ignore") as f:
+    feature_names = [line.strip() for line in f.readlines() if line.strip()]
 
 print(f"Total Features : {len(feature_names)}")
 
 # ==========================================================
-# Create Sample File Automatically
+# Create Sample File Automatically if not present
 # ==========================================================
 
 section("Checking Prediction Dataset")
 
-if not os.path.exists(INPUT_FILE):
+os.makedirs(os.path.dirname(INPUT_FILE), exist_ok=True)
 
+if not os.path.exists(INPUT_FILE):
     print("new_network_data.csv not found.")
     print("Creating sample prediction dataset...")
 
-    df = pd.read_csv(DATASET_PATH)
-
-    if "Label" in df.columns:
-        df = df.drop(columns=["Label"])
-
-    sample = df.sample(
-        n=100,
-        random_state=42
-    )
+    if os.path.exists(DATASET_PATH):
+        df = pd.read_csv(DATASET_PATH)
+        if "Label" in df.columns:
+            df = df.drop(columns=["Label"])
+        sample = df.sample(
+            n=min(100, len(df)),
+            random_state=42
+        )
+    else:
+        # Generate synthetic realistic network telemetry data for testing
+        np.random.seed(42)
+        sample_data = {
+            col: np.random.uniform(0, 100, size=50) for col in feature_names
+        }
+        sample = pd.DataFrame(sample_data)
 
     sample.to_csv(INPUT_FILE, index=False)
-
     print("Sample Dataset Created Successfully")
-
 else:
-
     print("Prediction Dataset Found")
 
 # ==========================================================
@@ -115,7 +141,6 @@ section("Loading Prediction Dataset")
 data = pd.read_csv(INPUT_FILE)
 
 print("Dataset Loaded")
-
 print("Shape :", data.shape)
 
 # ==========================================================
@@ -131,13 +156,10 @@ missing = [
 ]
 
 if len(missing) > 0:
-
-    print("\nMissing Columns")
-
+    print("\nMissing Columns:")
     for col in missing:
         print(col)
-
-    raise Exception("\nPrediction Stopped.")
+    raise Exception("\nPrediction Stopped due to missing features.")
 
 print("All Features Available")
 
@@ -152,7 +174,14 @@ section("Running Prediction")
 
 predictions = model.predict(X)
 
-predicted_labels = label_encoder.inverse_transform(predictions)
+# Clean labels for safe encoding
+clean_classes = [
+    str(c).encode("ascii", "replace").decode("ascii")
+    for c in label_encoder.classes_
+]
+
+predicted_indices = predictions
+predicted_labels = [clean_classes[i] if i < len(clean_classes) else f"Class_{i}" for i in predicted_indices]
 
 data["Predicted_Label"] = predicted_labels
 
@@ -176,8 +205,7 @@ print(f"\nPrediction Results Saved : {OUTPUT_FILE}")
 section("Prediction Summary")
 
 summary = data["Predicted_Label"].value_counts()
-
-print(summary)
+safe_print(summary.to_string())
 
 # ==========================================================
 # Finish

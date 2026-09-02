@@ -18,25 +18,39 @@ import time
 
 warnings.filterwarnings("ignore")
 
-# ==========================================================
-# Configuration
-# ==========================================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-DATA_PATH = "data/merged_dataset.csv"
-OUTPUT_PATH = "data/cleaned_dataset.csv"
-REPORT_PATH = "reports/preprocessing_report.txt"
 
-# Create reports folder if it doesn't exist
-os.makedirs("reports", exist_ok=True)
+def resolve_path(rel_path):
+    if os.path.isabs(rel_path) and os.path.exists(rel_path):
+        return rel_path
+    candidates = [
+        rel_path,
+        os.path.join(BASE_DIR, rel_path),
+        os.path.join(BASE_DIR, "..", rel_path)
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return os.path.abspath(c)
+    return os.path.abspath(os.path.join(BASE_DIR, rel_path))
+
+
+DATA_PATH = resolve_path("data/merged_dataset.csv")
+OUTPUT_PATH = resolve_path("data/cleaned_dataset.csv")
+REPORT_PATH = resolve_path("reports/preprocessing_report.txt")
+
+os.makedirs(os.path.dirname(REPORT_PATH), exist_ok=True)
+os.makedirs(os.path.dirname(OUTPUT_PATH), exist_ok=True)
 
 # ==========================================================
 # Helper Function
 # ==========================================================
 
+
 def section(title):
-    print("\n" + "="*70)
+    print("\n" + "=" * 70)
     print(title)
-    print("="*70)
+    print("=" * 70)
 
 
 # ==========================================================
@@ -47,17 +61,18 @@ section("Loading Dataset")
 
 start_time = time.time()
 
+if not os.path.exists(DATA_PATH):
+    print(f"[!] Dataset not found at {DATA_PATH}. Please ensure raw merged dataset exists.")
+    exit(0)
+
 try:
-
     df = pd.read_csv(DATA_PATH)
-
     print("Dataset Loaded Successfully")
-
 except Exception as e:
-
     print("Error Loading Dataset")
     print(e)
-    exit()
+    exit(0)
+
 
 end_time = time.time()
 
@@ -351,6 +366,7 @@ section("PART 2 COMPLETED")
 # ==========================================================
 
 from sklearn.preprocessing import LabelEncoder
+# pyrefly: ignore [missing-import]
 import joblib
 
 section("PART 3 : FEATURE ENGINEERING")

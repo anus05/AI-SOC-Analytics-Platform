@@ -1,16 +1,24 @@
-from datetime import datetime, timedelta
-from jose import jwt
+from datetime import datetime, timedelta, timezone
+from fastapi.security import HTTPBearer
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 SECRET_KEY = "CHANGE_THIS_TO_A_LONG_RANDOM_SECRET"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto"
+)
+
+security = HTTPBearer()
+
 
 def create_access_token(data: dict):
     to_encode = data.copy()
 
-    expire = datetime.utcnow() + timedelta(
+    expire = datetime.now(timezone.utc) + timedelta(
         minutes=ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
@@ -21,11 +29,6 @@ def create_access_token(data: dict):
         SECRET_KEY,
         algorithm=ALGORITHM
     )
-
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto"
-)
 
 
 def hash_password(password: str):
@@ -40,7 +43,7 @@ def verify_password(
         plain_password,
         hashed_password
     )
-from jose import JWTError, jwt
+
 
 def verify_token(token: str):
     try:
@@ -51,7 +54,4 @@ def verify_token(token: str):
         )
         return payload
     except JWTError:
-        return None
-from fastapi.security import HTTPBearer
-
-security = HTTPBearer()
+        return None

@@ -1,9 +1,11 @@
 from pydantic import BaseModel, EmailStr
 
+
 class RegisterRequest(BaseModel):
     username: str
     email: EmailStr
     password: str
+    role: str = "analyst"
 
 
 class LoginRequest(BaseModel):
@@ -14,8 +16,7 @@ class LoginRequest(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
-class RegisterRequest(BaseModel):
-    username: str
-    email: EmailStr
-    password: str
-    role: str = "analyst"
+
+
+class StatusUpdateRequest(BaseModel):
+    status: str

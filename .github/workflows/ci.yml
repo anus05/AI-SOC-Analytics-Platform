@@ -26,5 +26,6 @@ jobs:
       - name: Run pytest test suite
         env:
           PYTHONPATH: ${{ github.workspace }}
+          SKIP_DB_MIGRATION: "true"
         run: |
           python -m pytest backend/tests -v --tb=short

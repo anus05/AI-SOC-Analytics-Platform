@@ -223,6 +223,14 @@ Docker Compose supplies PostgreSQL, Redis, and Neo4j connection values automatic
 python -m uvicorn backend.main:app --reload --port 8000
 ```
 
+On Windows, after activating the project environment, you can also run the backend entry point directly:
+
+```powershell
+cd backend
+..\.venv\Scripts\Activate.ps1
+python main.py
+```
+
 If the environment has not been set up yet, install the backend dependencies first:
 
 ```bash

@@ -5,6 +5,7 @@ import { ToastProvider } from './components/common/Toast';
 
 // Import Pages
 import LoginPage from './pages/LoginPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import DashboardPage from './pages/DashboardPage';
 import AlertsPage from './pages/AlertsPage';
 import AlertDetailPage from './pages/AlertDetailPage';
@@ -18,14 +19,9 @@ import IncidentReportsPage from './pages/IncidentReportsPage';
 
 import DashboardLayout from './components/layout/DashboardLayout';
 
-// Protected Route Wrapper
+// Protected Route Wrapper (Login bypass enabled)
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useContext(AuthContext);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
+  // Temporary login bypass: direct access to all routes
   return children;
 };
 
@@ -44,6 +40,7 @@ function App() {
           <Routes>
             {/* Public Auth Endpoint */}
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
 
             {/* Secure Operator Canvas */}
             <Route 

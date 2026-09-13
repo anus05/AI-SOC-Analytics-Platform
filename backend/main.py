@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from backend.database.db import Base, engine, auto_migrate
+from backend.auth.auth_db import init_auth_db
 # Import all models before create_all
 import backend.database.models
 from backend.api.routes import router
@@ -19,6 +20,12 @@ from backend.api.attack_chain_routes import router as attack_chain_router
 from backend.api.threat_intel_routes import router as threat_intel_router
 from backend.api.report_routes import router as report_router
 from backend.api.soar_routes import router as soar_router
+
+# Initialize dedicated auth database
+try:
+    init_auth_db()
+except Exception as e:
+    print(f"[!] Auth DB initialization error: {e}")
 
 # Only run automatic migration if database is configured.
 # This prevents failures during testing when a test database is used

@@ -1,0 +1,37 @@
+# Git & CI
+.git
+.github
+
+# Python
+.venv
+venv
+ENV
+env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov
+
+# Node & Frontend
+frontend/node_modules
+frontend/dist
+node_modules
+
+# Database & local data
+*.db
+*.sqlite
+*.sqlite3
+test_soc.db
+
+# Documentation & Reports
+reports/*.pdf
+reports/*.docx
+reports/*.html
+logs/*.log
+
+# Environment files
+.env
+.env.*

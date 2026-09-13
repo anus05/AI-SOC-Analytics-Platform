@@ -203,17 +203,33 @@ npm install
 
 ## Configuration
 
-The backend reads database and service settings from environment variables. For a simple local run, create `backend/.env`:
+The platform reads database, security, and service credentials from environment variables. Copy `.env.example` to `.env` in the project root:
 
-```env
-DATABASE_URL=sqlite:///./soc.db
-SECRET_KEY=replace-with-a-long-random-value
-ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=30
-SKIP_DB_MIGRATION=false
+```bash
+cp .env.example .env
 ```
 
-Docker Compose supplies PostgreSQL, Redis, and Neo4j connection values automatically. **Rotate `SECRET_KEY` and any API keys before using this outside local development** — see the repo's `.env` handling notes if you're re-sharing this project.
+### Key Environment Variables
+
+| Variable | Description | Default / Example |
+| --- | --- | --- |
+| `POSTGRES_USER` | PostgreSQL Username | `postgres` |
+| `POSTGRES_PASSWORD` | PostgreSQL Password | `postgres123` |
+| `POSTGRES_DB` | PostgreSQL Database Name | `aisoc` |
+| `DATABASE_URL` | SQLAlchemy Database Connection URL | `postgresql+psycopg2://postgres:postgres123@localhost:5432/aisoc` (or `sqlite:///./soc.db`) |
+| `AUTH_DATABASE_URL` | Auth SQLite Database URL | `sqlite:///backend/database/login.db` |
+| `NEO4J_USER` | Neo4j Username | `neo4j` |
+| `NEO4J_PASSWORD` | Neo4j Password | `password` |
+| `SECRET_KEY` | JWT Secret Key for token signing | Long random secret string |
+| `ALGORITHM` | JWT Encoding Algorithm | `HS256` |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT Token Expiration | `60` |
+| `FRONTEND_URL` | Frontend Origin (for CORS & resets) | `http://localhost:5173` |
+| `VITE_API_URL` | Backend URL for Frontend Build | `http://localhost:8000` |
+| `GOOGLE_CLIENT_ID` / `VITE_GOOGLE_CLIENT_ID` | Google OAuth Client ID | OAuth Client ID |
+| `GEMINI_API_KEY` | Gemini API Key for Copilot | Optional |
+| `VIRUSTOTAL_API_KEY` | VirusTotal API Key for Intel | Optional |
+
+Docker Compose automatically injects containerized networking hostnames (`postgres`, `redis`, `neo4j`) while pulling secrets and credentials from `.env`. **Rotate `SECRET_KEY` and any API keys before deploying in production.**
 
 ## Running Locally
 

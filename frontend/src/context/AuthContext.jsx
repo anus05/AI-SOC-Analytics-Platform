@@ -3,19 +3,26 @@ import client, { registerTokenGetter } from "../api/client";
 
 export const AuthContext = createContext();
 
+const DEFAULT_OPERATOR = {
+  id: 1,
+  email: "analyst@socvigil.net",
+  username: "analyst@socvigil.net",
+  name: "Security Analyst",
+  role: "admin",
+  auth_provider: "local",
+};
+
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(
-    () => localStorage.getItem("soc_token")
+    () => localStorage.getItem("soc_token") || "dev_bypass_token"
   );
 
   const [operator, setOperator] = useState(() => {
     const saved = localStorage.getItem("soc_operator");
-    return saved ? JSON.parse(saved) : null;
+    return saved ? JSON.parse(saved) : DEFAULT_OPERATOR;
   });
 
-  const [isAuthenticated, setIsAuthenticated] = useState(
-    !!localStorage.getItem("soc_token")
-  );
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
 
   const [error, setError] = useState(null);
 
@@ -40,63 +47,115 @@ export const AuthProvider = ({ children }) => {
 
   // ---------------- LOGIN ----------------
 
-  const login = async (username, password) => {
+  const login = async (emailOrUsername, password) => {
     try {
       setError(null);
 
       const response = await client.post("/auth/login", {
-        username,
+        email: emailOrUsername,
+        username: emailOrUsername,
         password,
       });
 
       const access_token = response.data.access_token;
-
       localStorage.setItem("soc_token", access_token);
-
       setToken(access_token);
 
-      // fetch logged-in user
+      // fetch logged-in user profile
       const me = await client.get("/auth/me");
+      const userData = me.data || response.data.user;
 
       localStorage.setItem(
         "soc_operator",
-        JSON.stringify(me.data)
+        JSON.stringify(userData)
       );
 
-      setOperator(me.data);
-
+      setOperator(userData);
       setIsAuthenticated(true);
 
       return true;
     } catch (err) {
-      setError(
-        err.response?.data?.detail ||
-          "Invalid username or password"
-      );
+      const msg = err.response?.data?.detail || "Invalid email or password";
+      setError(msg);
       return false;
     }
   };
 
   // ---------------- REGISTER ----------------
 
-  const register = async (email, username, password) => {
+  const register = async (email, name, password) => {
     try {
       setError(null);
 
       await client.post("/auth/register", {
-        username,
         email,
+        name: name || email.split("@")[0],
         password,
         role: "analyst",
       });
 
       return true;
     } catch (err) {
-      setError(
-        err.response?.data?.detail ||
-          "Registration failed."
-      );
+      const msg = err.response?.data?.detail || "Registration failed.";
+      setError(msg);
       return false;
+    }
+  };
+
+  // ---------------- GOOGLE LOGIN ----------------
+
+  const googleLogin = async (payload) => {
+    try {
+      setError(null);
+
+      const response = await client.post("/auth/google", payload);
+
+      const access_token = response.data.access_token;
+      const userData = response.data.user;
+
+      localStorage.setItem("soc_token", access_token);
+      setToken(access_token);
+
+      localStorage.setItem("soc_operator", JSON.stringify(userData));
+      setOperator(userData);
+
+      setIsAuthenticated(true);
+      return true;
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Google authentication failed.";
+      setError(msg);
+      return false;
+    }
+  };
+
+  // ---------------- FORGOT PASSWORD ----------------
+
+  const forgotPassword = async (email) => {
+    try {
+      setError(null);
+      const response = await client.post("/auth/forgot-password", { email });
+      return { success: true, message: response.data?.message };
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Unable to request password reset.";
+      setError(msg);
+      return { success: false, error: msg };
+    }
+  };
+
+  // ---------------- RESET PASSWORD ----------------
+
+  const resetPassword = async (resetToken, newPassword) => {
+    try {
+      setError(null);
+      const response = await client.post("/auth/reset-password", {
+        token: resetToken,
+        new_password: newPassword,
+      });
+      return { success: true, message: response.data?.message };
+    } catch (err) {
+      const msg = err.response?.data?.detail || "Failed to reset password.";
+      setError(msg);
+      return { success: false, error: msg };
     }
   };
 
@@ -120,7 +179,10 @@ export const AuthProvider = ({ children }) => {
         isAuthenticated,
         error,
         login,
+        googleLogin,
         register,
+        forgotPassword,
+        resetPassword,
         logout,
         setError,
       }}

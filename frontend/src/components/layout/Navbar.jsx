@@ -59,29 +59,44 @@ const Navbar = ({ systemStatus = 'Secure', onRefresh, refreshing }) => {
 
         <button 
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="w-7 h-7 rounded border border-border bg-[#0d1117] hover:bg-[#161b22] hover:border-[#8b949e] cursor-pointer transition-all flex items-center justify-center select-none"
+          className="w-7 h-7 rounded border border-border bg-[#0d1117] hover:bg-[#161b22] hover:border-[#8b949e] cursor-pointer transition-all flex items-center justify-center select-none overflow-hidden"
         >
-          <span className="font-mono text-[10px] text-accent font-bold">{getInitials()}</span>
+          {operator?.picture ? (
+            <img src={operator.picture} alt="Avatar" className="w-full h-full object-cover" />
+          ) : (
+            <span className="font-mono text-[10px] text-accent font-bold">{getInitials()}</span>
+          )}
         </button>
 
         {dropdownOpen && (
-          <div className="absolute right-0 top-9 bg-surface border border-border rounded p-1 shadow-sm w-44 flex flex-col z-50 animate-fade-in">
-            <div className="px-2 py-1 border-b border-border/40 flex flex-col md:hidden">
-              <span className="font-mono text-[10px] text-on-surface">{operator?.username || 'Operator'}</span>
-              <span className="font-sans text-[8px] text-on-surface-variant uppercase">{operator?.role || 'Analyst'}</span>
+          <div className="absolute right-0 top-9 bg-surface border border-border rounded p-2 shadow-xl w-48 flex flex-col z-50 animate-fade-in gap-1.5">
+            <div className="px-1 py-1 border-b border-border/40 flex flex-col">
+              <span className="font-mono text-[11px] font-bold text-on-surface truncate">
+                {operator?.name || operator?.username || 'Operator'}
+              </span>
+              <span className="font-sans text-[9px] text-on-surface-variant truncate">
+                {operator?.email}
+              </span>
+              {operator?.google_id && (
+                <div className="flex items-center gap-1 mt-1 font-mono text-[8px] text-accent bg-accent/10 px-1.5 py-0.5 rounded w-fit">
+                  <span className="material-symbols-outlined text-[10px]">verified</span>
+                  <span>Google SSO</span>
+                </div>
+              )}
             </div>
             <button 
               onClick={() => {
                 setDropdownOpen(false);
                 logout();
               }}
-              className="flex items-center gap-xs px-2 py-1 text-[#f85149] hover:bg-[#f85149]/10 rounded w-full text-left font-sans text-[11px] transition-colors cursor-pointer"
+              className="flex items-center gap-xs px-2 py-1.5 text-[#f85149] hover:bg-[#f85149]/10 rounded w-full text-left font-sans text-[11px] transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined text-[14px]">logout</span>
               <span>Sign Out</span>
             </button>
           </div>
         )}
+
       </div>
     </header>
   );

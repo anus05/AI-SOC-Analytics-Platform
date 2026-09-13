@@ -78,6 +78,22 @@ def auto_migrate():
                         except Exception as ex:
                             print(f"[!] Migration warning for column {col_name}: {ex}")
 
+        if "users" in tables:
+            existing_cols = [c["name"] for c in inspector.get_columns("users")]
+            columns_to_add = [
+                ("google_id", "VARCHAR(255)"),
+                ("picture", "VARCHAR(500)"),
+            ]
+            with engine.connect() as conn:
+                for col_name, col_type in columns_to_add:
+                    if col_name not in existing_cols:
+                        try:
+                            conn.execute(text(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}"))
+                            conn.commit()
+                            print(f"[+] Migrated missing column 'users.{col_name}'")
+                        except Exception as ex:
+                            print(f"[!] Migration warning for column users.{col_name}: {ex}")
+
         if "incident_reports" in tables:
             existing_cols = [c["name"] for c in inspector.get_columns("incident_reports")]
             if "docx_path" not in existing_cols:
@@ -89,4 +105,4 @@ def auto_migrate():
                     except Exception as ex:
                         print(f"[!] Migration warning: {ex}")
     except Exception as e:
-        print(f"[!] Auto migration error: {e}")
+        print(f"[!] Auto migration error: {e}")

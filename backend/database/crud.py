@@ -118,6 +118,63 @@ def get_user(db: Session, username: str):
     return get_user_by_username(db, username)
 
 
+def get_user_by_google_id(db: Session, google_id: str):
+    return db.query(User).filter(User.google_id == google_id).first()
+
+
+def get_user_by_email(db: Session, email: str):
+    return db.query(User).filter(User.email == email).first()
+
+
+def create_or_get_google_user(
+    db: Session,
+    email: str,
+    name: str = None,
+    google_id: str = None,
+    picture: str = None,
+):
+    user = None
+    if google_id:
+        user = get_user_by_google_id(db, google_id)
+
+    if not user and email:
+        user = get_user_by_email(db, email)
+
+    if user:
+        updated = False
+        if google_id and not user.google_id:
+            user.google_id = google_id
+            updated = True
+        if picture and user.picture != picture:
+            user.picture = picture
+            updated = True
+        if updated:
+            db.commit()
+            db.refresh(user)
+        return user
+
+    base_username = (name or email.split("@")[0]).strip().replace(" ", "_")
+    username = base_username
+    counter = 1
+    while db.query(User).filter(User.username == username).first():
+        username = f"{base_username}_{counter}"
+        counter += 1
+
+    user = User(
+        username=username,
+        email=email,
+        password=None,
+        role="analyst",
+        google_id=google_id,
+        picture=picture,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+
 def save_alert(db: Session, alert):
     tech = "Unknown"
     if hasattr(alert, "mitre") and alert.mitre:

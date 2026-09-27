@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAlerts } from '../hooks/useAlerts';
 import { useToast } from '../components/common/Toast';
@@ -13,39 +13,106 @@ const DashboardPage = () => {
   const toast = useToast();
   const navigate = useNavigate();
 
+  const isFetchingRef = useRef(false);
+  const consecutiveErrorsRef = useRef(0);
+  const timerRef = useRef(null);
+  const abortControllerRef = useRef(null);
+
   const [dbData, setDbData] = useState(null);
   const [fetchError, setFetchError] = useState(null);
   const [scanTarget, setScanTarget] = useState('');
   const [scanResult, setScanResult] = useState(null);
   const [scanning, setScanning] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   
   // Modals state
   const [isLogUploadOpen, setIsLogUploadOpen] = useState(false);
   const [isSoarModalOpen, setIsSoarModalOpen] = useState(false);
   const [soarTarget, setSoarTarget] = useState('185.199.108.153');
 
+  const BASE_POLL_INTERVAL = 20000; // 20 seconds base poll
+  const MAX_CONSECUTIVE_ERRORS = 5;
+
   const loadData = useCallback(async (isManual = false) => {
+    // Prevent overlapping in-flight requests
+    if (isFetchingRef.current) return;
+
+    isFetchingRef.current = true;
     if (isManual) setIsRefreshing(true);
+
+    // Cancel any previous in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     try {
-      setFetchError(null);
-      const data = await getDashboardData();
+      const data = await getDashboardData({ signal: controller.signal });
       setDbData(data);
-      if (isManual) toast.success("Dashboard telemetry synchronized with PostgreSQL.");
+      setFetchError(null);
+      consecutiveErrorsRef.current = 0;
+      setIsPaused(false);
+      if (isManual) {
+        toast.success("Dashboard telemetry synchronized.");
+      }
     } catch (err) {
-      setFetchError(err.message || "Failed to load dashboard metrics.");
-      toast.error(err.message || "Dashboard sync error.");
+      if (err.name === 'CanceledError' || err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+        return;
+      }
+      consecutiveErrorsRef.current += 1;
+      const errMsg = err.message || "Failed to load dashboard metrics.";
+      setFetchError(errMsg);
+
+      // Only fire toast popups on explicit manual actions to prevent stacked notification spam
+      if (isManual) {
+        toast.error(errMsg);
+      }
+
+      if (consecutiveErrorsRef.current >= MAX_CONSECUTIVE_ERRORS) {
+        setIsPaused(true);
+      }
     } finally {
-      setIsRefreshing(false);
+      isFetchingRef.current = false;
+      if (isManual) setIsRefreshing(false);
     }
   }, [getDashboardData, toast]);
 
   useEffect(() => {
-    loadData();
-    const interval = setInterval(() => {
-      loadData();
-    }, 30000);
-    return () => clearInterval(interval);
+    let active = true;
+
+    const scheduleNextPoll = () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+
+      let delay = BASE_POLL_INTERVAL;
+      if (consecutiveErrorsRef.current > 0) {
+        if (consecutiveErrorsRef.current >= MAX_CONSECUTIVE_ERRORS) {
+          // Polling paused after maximum consecutive failures
+          return;
+        }
+        // Exponential backoff: never faster than BASE_POLL_INTERVAL (20s), capped at 60s
+        delay = Math.min(BASE_POLL_INTERVAL * Math.pow(1.5, consecutiveErrorsRef.current), 60000);
+      }
+
+      timerRef.current = setTimeout(async () => {
+        if (!active) return;
+        await loadData(false);
+        if (active) scheduleNextPoll();
+      }, delay);
+    };
+
+    loadData(false).then(() => {
+      if (active) scheduleNextPoll();
+    });
+
+    return () => {
+      active = false;
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [loadData]);
 
   const handleScanSubmit = async (e) => {
@@ -140,7 +207,7 @@ const DashboardPage = () => {
         <div className="p-3 border border-[#f85149]/40 bg-[#f85149]/10 text-[#f85149] font-mono text-[11px] rounded flex flex-col sm:flex-row justify-between items-start sm:items-center gap-sm animate-fade-in">
           <div className="flex items-center gap-xs">
             <span className="material-symbols-outlined text-[16px]">wifi_off</span>
-            <span>{fetchError}</span>
+            <span>{fetchError}{isPaused ? " (Polling paused due to consecutive failures. Click retry to sync.)" : ""}</span>
           </div>
           <button
             onClick={() => loadData(true)}
@@ -152,8 +219,8 @@ const DashboardPage = () => {
       )}
 
       {/* Bento Grid Layout - Stat Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-sm">
-        <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+        <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
           <StatCard 
             title="Total Alerts" 
             value={dbData ? dbData.totalAlerts.toLocaleString() : '---'} 
@@ -164,49 +231,50 @@ const DashboardPage = () => {
           />
           <StatCard 
             title="High-Severity" 
-            value={dbData ? (dbData.criticalAlerts + dbData.highSeverity) : '---'} 
-            pulse={dbData && (dbData.criticalAlerts + dbData.highSeverity) > 0 ? "medium" : null} 
+            value={dbData ? (dbData.criticalAlerts + dbData.highAlerts) : '---'} 
+            pulse={dbData && (dbData.criticalAlerts + dbData.highAlerts) > 0 ? "medium" : null} 
             icon="warning" 
-            iconColor="text-[#d29922]"
+            iconColor="text-amber-400"
             loading={isInitialLoading}
           />
           <StatCard 
             title="Average Threat Score" 
-            value={dbData ? `${dbData.threatScore}/100` : '---'} 
-            pulse={dbData && dbData.threatScore >= 70 ? "critical" : null} 
+            value={dbData ? `${dbData.avgThreatScore}/100` : '---'} 
+            pulse={dbData && dbData.avgThreatScore >= 70 ? "critical" : null} 
             icon="policy" 
-            iconColor="text-[#f85149]"
-            valueColor="text-[#f85149]"
+            iconColor="text-rose-400"
+            valueColor="text-rose-400"
             loading={isInitialLoading}
           />
           <StatCard 
             title="Today's Detections" 
             value={dbData ? dbData.detectionsToday : '---'} 
             icon="radar"
+            iconColor="text-accent"
             loading={isInitialLoading}
           />
         </div>
 
         {/* Alerts Over Time Chart */}
-        <div className="lg:col-span-7 bg-surface border border-border rounded p-3 flex flex-col min-h-[190px] relative overflow-hidden card-hover">
-          <div className="flex justify-between items-center mb-sm">
-            <h2 className="font-sans text-[10px] font-bold text-on-surface uppercase tracking-wider">
+        <div className="lg:col-span-7 glass-panel-interactive p-4 flex flex-col min-h-[200px] relative overflow-hidden">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-sans text-[10px] font-bold text-slate-200 uppercase tracking-wider">
               Alerts over Time (Last 24 Hours)
             </h2>
-            <span className="font-mono text-[9px] text-on-surface-variant">DB REALTIME</span>
+            <span className="font-mono text-[9px] text-accent font-bold bg-teal-500/10 px-2 py-0.5 rounded border border-teal-500/20">DB REALTIME</span>
           </div>
-          <div className="flex-1 min-h-[120px]">
+          <div className="flex-1 min-h-[130px]">
             <AlertsOverTimeChart dataPoints={dbData?.alertsTrend} loading={isInitialLoading} />
           </div>
         </div>
       </div>
 
       {/* Charts & Recent Incidents Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-sm">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
         {/* Attack Types Chart */}
-        <div className="lg:col-span-6 bg-surface border border-border rounded p-3 flex flex-col justify-between card-hover">
-          <div className="flex justify-between items-center mb-sm">
-            <h2 className="font-sans text-[10px] font-bold text-on-surface uppercase tracking-wider">
+        <div className="lg:col-span-6 glass-panel-interactive p-4 flex flex-col justify-between">
+          <div className="flex justify-between items-center mb-3">
+            <h2 className="font-sans text-[10px] font-bold text-slate-200 uppercase tracking-wider">
               Attack Types Summary
             </h2>
             <span className="font-mono text-[9px] text-accent font-bold">
@@ -219,9 +287,9 @@ const DashboardPage = () => {
         </div>
 
         {/* Recent Incident Logs Table */}
-        <div className="lg:col-span-6 bg-surface border border-border rounded overflow-hidden flex flex-col card-hover">
-          <div className="px-3 py-2 border-b border-border flex justify-between items-center bg-[#161b22]/30">
-            <h2 className="font-sans text-[10px] font-bold text-on-surface uppercase tracking-wider">
+        <div className="lg:col-span-6 glass-panel-interactive overflow-hidden flex flex-col">
+          <div className="px-4 py-2.5 border-b border-white/10 flex justify-between items-center bg-slate-950/40">
+            <h2 className="font-sans text-[10px] font-bold text-slate-200 uppercase tracking-wider">
               Recent Incident Logs
             </h2>
             <button 
@@ -231,22 +299,22 @@ const DashboardPage = () => {
               View All Logs ({dbData?.totalAlerts || 0})
             </button>
           </div>
-          <div className="flex-grow divide-y divide-border/60 max-h-[190px] overflow-y-auto">
+          <div className="flex-grow divide-y divide-white/5 max-h-[195px] overflow-y-auto">
             {isInitialLoading ? (
               [...Array(5)].map((_, idx) => (
                 <div key={idx} className="px-3 py-2 flex items-center justify-between animate-pulse">
-                  <div className="flex items-center gap-sm flex-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-border"></div>
+                  <div className="flex items-center gap-2 flex-1">
+                    <div className="w-2 h-2 rounded-full bg-white/10"></div>
                     <div className="space-y-1 flex-1">
-                      <div className="h-3 w-1/3 bg-[#22262f] rounded"></div>
-                      <div className="h-2.5 w-1/4 bg-[#22262f]/70 rounded"></div>
+                      <div className="h-3 w-1/3 bg-white/10 rounded"></div>
+                      <div className="h-2.5 w-1/4 bg-white/5 rounded"></div>
                     </div>
                   </div>
-                  <div className="h-2.5 w-10 bg-[#22262f]/60 rounded"></div>
+                  <div className="h-2.5 w-10 bg-white/5 rounded"></div>
                 </div>
               ))
             ) : !dbData?.recentAlerts || dbData.recentAlerts.length === 0 ? (
-              <div className="p-4 text-center text-on-surface-variant font-mono text-[11px]">
+              <div className="p-4 text-center text-slate-400 font-mono text-[11px]">
                 No incident logs stored in PostgreSQL database.
               </div>
             ) : (
@@ -254,22 +322,22 @@ const DashboardPage = () => {
                 <div
                   key={alert.id}
                   onClick={() => navigate(`/alerts/${alert.id}`)}
-                  className="px-3 py-2 hover:bg-[#161b22]/50 transition-colors flex items-center justify-between cursor-pointer group"
+                  className="px-3.5 py-2.5 hover:bg-slate-800/50 transition-colors flex items-center justify-between cursor-pointer group"
                 >
-                  <div className="flex items-center gap-sm">
+                  <div className="flex items-center gap-2.5">
                     <div className={`w-2 h-2 rounded-full ${getAlertSeverityColor(alert.severity)}`}></div>
                     <div>
-                      <div className="font-mono text-[11px] text-on-surface group-hover:text-accent transition-colors font-bold">
+                      <div className="font-mono text-[11px] text-slate-200 group-hover:text-accent transition-colors font-bold">
                         {alert.title}
                       </div>
-                      <div className="font-mono text-[10px] text-on-surface-variant">
+                      <div className="font-mono text-[10px] text-slate-400">
                         IP: {alert.sourceIp} | Target: {alert.target}
                       </div>
                     </div>
                   </div>
                   <div className="text-right flex items-center space-x-2">
                     <div>
-                      <span className="font-mono text-[9px] text-on-surface-variant block">
+                      <span className="font-mono text-[9px] text-slate-400 block">
                         {alert.time}
                       </span>
                       <span className="font-mono text-[9px] text-accent font-bold">
@@ -282,7 +350,7 @@ const DashboardPage = () => {
                         setSoarTarget(alert.sourceIp);
                         setIsSoarModalOpen(true);
                       }}
-                      className="px-2 py-1 text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded hover:bg-amber-500/20"
+                      className="px-2 py-0.5 text-[10px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 rounded hover:bg-amber-500/25 transition-all"
                     >
                       SOAR
                     </button>
@@ -295,28 +363,28 @@ const DashboardPage = () => {
       </div>
 
       {/* Network Vulnerability Scanner Section */}
-      <div className="bg-surface border border-border rounded p-3 card-hover">
-        <h2 className="font-sans text-[10px] font-bold text-on-surface uppercase tracking-wider mb-1">
+      <div className="glass-panel-interactive p-4">
+        <h2 className="font-sans text-[10px] font-bold text-slate-200 uppercase tracking-wider mb-1">
           Live Security & ML Model Threat Scanner
         </h2>
-        <p className="font-sans text-[11px] text-on-surface-variant mb-3 max-w-2xl">
+        <p className="font-sans text-[11px] text-slate-400 mb-3 max-w-2xl">
           Trigger live log parsing, rule-based threat detectors, and Random Forest ML prediction pipeline (`best_model.pkl`) to identify and store threats in PostgreSQL.
         </p>
 
-        <form onSubmit={handleScanSubmit} className="flex flex-col sm:flex-row gap-sm max-w-xl">
+        <form onSubmit={handleScanSubmit} className="flex flex-col sm:flex-row gap-2.5 max-w-xl">
           <input 
             type="text"
             value={scanTarget}
             onChange={(e) => setScanTarget(e.target.value)}
             disabled={scanning}
             placeholder="e.g. 192.168.1.0/24 or auth.internal.corp"
-            className="input-field flex-1 rounded px-3 py-1.5 disabled:opacity-50 font-mono text-[11px]"
+            className="input-field flex-1 rounded-lg px-3 py-2 disabled:opacity-50 font-mono text-[11px]"
             required
           />
           <button
             type="submit"
             disabled={scanning || loading}
-            className="btn-primary rounded py-1.5 px-4 font-sans font-bold text-[10px] uppercase tracking-wider transition-all flex justify-center items-center gap-xs cursor-pointer select-none active:scale-95 disabled:opacity-50"
+            className="btn-primary rounded-lg py-2 px-4 font-sans font-bold text-[10px] uppercase tracking-wider transition-all flex justify-center items-center gap-1.5 cursor-pointer select-none active:scale-95 disabled:opacity-50 shadow-sm"
           >
             {scanning ? (
               <>
@@ -333,23 +401,23 @@ const DashboardPage = () => {
         </form>
 
         {scanResult && (
-          <div className="mt-3 p-3 rounded bg-[#0d1117] border border-border text-left animate-fade-in">
-            <div className="flex items-center gap-sm mb-2 text-accent border-b border-border/40 pb-[4px]">
+          <div className="mt-3.5 p-3.5 rounded-lg bg-slate-950/70 border border-white/10 text-left animate-fade-in backdrop-blur-md">
+            <div className="flex items-center gap-2 mb-2 text-accent border-b border-white/10 pb-1.5">
               <span className="material-symbols-outlined text-[14px]">verified</span>
               <span className="font-mono text-[10px] font-bold uppercase tracking-wider">
                 Scan Report: {scanResult.target} ({scanResult.status.toUpperCase()})
               </span>
             </div>
             {scanResult.alerts_found > 0 ? (
-              <div className="space-y-sm">
-                <p className="font-sans text-[11px] text-[#f85149] font-bold">
+              <div className="space-y-2">
+                <p className="font-sans text-[11px] text-rose-400 font-bold">
                   Warning: Found {scanResult.alerts_found} threat indicators during log scan:
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-xs">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   {scanResult.details.map((detail, idx) => (
-                    <div key={idx} className="p-2 bg-surface border border-[#f85149]/30 rounded">
-                      <span className="font-mono text-[10px] text-[#f85149] block font-bold">{detail.type.toUpperCase()}</span>
-                      <span className="font-sans text-[11px] text-on-surface-variant">{detail.details}</span>
+                    <div key={idx} className="p-2.5 bg-slate-900/60 border border-rose-500/30 rounded-md">
+                      <span className="font-mono text-[10px] text-rose-400 block font-bold">{detail.type.toUpperCase()}</span>
+                      <span className="font-sans text-[11px] text-slate-300">{detail.details}</span>
                     </div>
                   ))}
                 </div>
@@ -367,3 +435,4 @@ const DashboardPage = () => {
 };
 
 export default DashboardPage;
+

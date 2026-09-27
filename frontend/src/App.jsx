@@ -94,6 +94,14 @@ function App() {
               } 
             />
             <Route 
+              path="/attack-timeline/:alertId" 
+              element={
+                <DashboardLayoutWrapper>
+                  <AttackTimelinePage />
+                </DashboardLayoutWrapper>
+              } 
+            />
+            <Route 
               path="/threat-intel" 
               element={
                 <DashboardLayoutWrapper>

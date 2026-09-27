@@ -1,0 +1,8 @@
+# TEST DATASET: SSH Brute Force Authentication Attack
+# Description: 6 rapid failed password attempts for user 'root' from single source IP within 45 seconds
+2026-09-26T22:00:01Z ip-10-77-20-248 sshd[14101]: Failed password for root from 198.51.100.42 port 49152 ssh2
+2026-09-26T22:00:08Z ip-10-77-20-248 sshd[14105]: Failed password for root from 198.51.100.42 port 49154 ssh2
+2026-09-26T22:00:15Z ip-10-77-20-248 sshd[14109]: Failed password for root from 198.51.100.42 port 49158 ssh2
+2026-09-26T22:00:23Z ip-10-77-20-248 sshd[14114]: Failed password for root from 198.51.100.42 port 49162 ssh2
+2026-09-26T22:00:31Z ip-10-77-20-248 sshd[14119]: Failed password for root from 198.51.100.42 port 49166 ssh2
+2026-09-26T22:00:42Z ip-10-77-20-248 sshd[14125]: Failed password for root from 198.51.100.42 port 49170 ssh2

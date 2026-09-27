@@ -29,22 +29,22 @@ const InvestigationPage = () => {
   const selectedAlert = alerts.find(a => String(a.id) === String(selectedAlertId)) || alerts[0];
 
   return (
-    <div className="space-y-md max-w-[1600px] mx-auto w-full text-left">
+    <div className="space-y-4 max-w-[1600px] mx-auto w-full text-left">
       {/* Header */}
       <div className="flex flex-col">
-        <h1 className="font-sans text-[16px] font-bold text-on-surface uppercase tracking-wide">
+        <h1 className="font-sans text-[16px] font-bold text-slate-200 uppercase tracking-wide">
           AI Security Investigation Workspace
         </h1>
-        <p className="font-sans text-[11px] text-on-surface-variant">
+        <p className="font-sans text-[11px] text-slate-400">
           Automated LLM investigation copilot and explainable threat scoring analysis canvas.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-md">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
         {/* Left Column: Selectable Alert List */}
-        <div className="lg:col-span-4 bg-surface border border-border rounded overflow-hidden flex flex-col h-[650px] card-hover">
-          <div className="px-3 py-2.5 bg-[#161b22]/50 border-b border-border flex justify-between items-center">
-            <h2 className="font-sans text-[10px] font-bold text-on-surface uppercase tracking-wider">
+        <div className="lg:col-span-4 glass-panel-interactive overflow-hidden flex flex-col h-[650px]">
+          <div className="px-4 py-3 bg-slate-950/60 border-b border-white/10 flex justify-between items-center">
+            <h2 className="font-sans text-[10px] font-bold text-slate-200 uppercase tracking-wider">
               Select Incident to Investigate
             </h2>
             <span className="font-mono text-[9px] text-accent font-bold">
@@ -52,9 +52,9 @@ const InvestigationPage = () => {
             </span>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-border/40">
+          <div className="flex-1 overflow-y-auto divide-y divide-white/5">
             {loading && alerts.length === 0 ? (
-              <div className="p-4 font-mono text-[11px] text-on-surface-variant text-center">
+              <div className="p-4 font-mono text-[11px] text-slate-400 text-center">
                 Loading alert index...
               </div>
             ) : alerts.map((alert) => {
@@ -63,20 +63,20 @@ const InvestigationPage = () => {
                 <div
                   key={alert.id}
                   onClick={() => setSelectedAlertId(alert.id)}
-                  className={`p-3 cursor-pointer transition-all ${
+                  className={`p-3.5 cursor-pointer transition-all ${
                     isSelected 
-                      ? 'bg-[#1f242c] border-l-2 border-accent' 
-                      : 'hover:bg-[#161b22]/50 bg-surface'
+                      ? 'bg-teal-500/15 border-l-2 border-accent text-slate-100' 
+                      : 'hover:bg-slate-800/40 bg-transparent text-slate-300'
                   }`}
                 >
                   <div className="flex justify-between items-center mb-1">
-                    <span className="font-mono text-[11px] font-bold text-on-surface">#{alert.id}</span>
+                    <span className="font-mono text-[11px] font-bold text-slate-200">#{alert.id}</span>
                     <SeverityBadge severity={alert.severity} />
                   </div>
-                  <div className="font-sans text-[11px] font-semibold text-on-surface truncate">
+                  <div className="font-sans text-[11px] font-semibold text-slate-200 truncate">
                     {alert.attack}
                   </div>
-                  <div className="font-mono text-[10px] text-on-surface-variant mt-1 flex justify-between">
+                  <div className="font-mono text-[10px] text-slate-400 mt-1 flex justify-between">
                     <span>IP: {alert.sourceIp}</span>
                     <span className="text-accent font-bold">Score: {alert.threatScore}</span>
                   </div>
@@ -87,7 +87,7 @@ const InvestigationPage = () => {
         </div>
 
         {/* Right Column: AI Copilot & Explainable Scoring Canvas */}
-        <div className="lg:col-span-8 space-y-md">
+        <div className="lg:col-span-8 space-y-4">
           {selectedAlertId ? (
             <>
               {/* Explainable Threat Score Card */}
@@ -97,7 +97,7 @@ const InvestigationPage = () => {
               <AICopilotPanel alertId={selectedAlertId} />
             </>
           ) : (
-            <div className="bg-surface border border-border rounded p-8 text-center font-mono text-[11px] text-on-surface-variant">
+            <div className="glass-panel p-8 text-center font-mono text-[11px] text-slate-400">
               Select an alert from the left panel to launch AI Investigation Copilot.
             </div>
           )}
@@ -108,3 +108,4 @@ const InvestigationPage = () => {
 };
 
 export default InvestigationPage;
+

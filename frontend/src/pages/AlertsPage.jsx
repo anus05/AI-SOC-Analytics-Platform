@@ -71,20 +71,20 @@ const AlertsPage = () => {
   };
 
   return (
-    <div className="flex flex-col gap-sm max-w-[1600px] mx-auto w-full">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-sm">
+    <div className="flex flex-col gap-3 max-w-[1600px] mx-auto w-full">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5">
         <div>
-          <h1 className="font-sans text-[16px] font-bold text-on-surface uppercase tracking-wide">
+          <h1 className="font-sans text-[16px] font-bold text-slate-200 uppercase tracking-wide">
             Threat Registry Logs
           </h1>
-          <p className="font-sans text-[11px] text-on-surface-variant">
+          <p className="font-sans text-[11px] text-slate-400">
             PostgreSQL query results for flagged security anomalies, detector alerts, and ML predictions.
           </p>
         </div>
         <button
           onClick={() => fetchAlerts(true)}
           disabled={isRefreshing || loading}
-          className="flex items-center gap-xs px-3 py-1.5 rounded bg-surface border border-border text-on-surface hover:text-accent font-mono text-[10px] transition-all cursor-pointer disabled:opacity-50 select-none"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900/60 border border-white/10 text-slate-300 hover:text-accent font-mono text-[10px] transition-all cursor-pointer disabled:opacity-50 select-none backdrop-blur-sm shadow-sm"
         >
           <span className={`material-symbols-outlined text-[14px] ${isRefreshing ? 'animate-spin text-accent' : ''}`}>
             refresh
@@ -95,14 +95,14 @@ const AlertsPage = () => {
 
       {/* Error Banner */}
       {error && (
-        <div className="p-3 border border-[#f85149]/40 bg-[#f85149]/10 text-[#f85149] font-mono text-[11px] rounded flex justify-between items-center gap-sm animate-fade-in">
-          <div className="flex items-center gap-xs">
+        <div className="p-3 border border-rose-500/40 bg-rose-500/10 text-rose-400 font-mono text-[11px] rounded-lg flex justify-between items-center gap-3 animate-fade-in backdrop-blur-sm">
+          <div className="flex items-center gap-1.5">
             <span className="material-symbols-outlined text-[16px]">wifi_off</span>
             <span>{error}</span>
           </div>
           <button
             onClick={() => fetchAlerts(true)}
-            className="px-3 py-1 rounded bg-[#f85149] text-white font-sans text-[10px] font-bold uppercase tracking-wider hover:bg-[#da3633] transition-colors cursor-pointer"
+            className="px-3 py-1 rounded-md bg-rose-500 text-white font-sans text-[10px] font-bold uppercase tracking-wider hover:bg-rose-600 transition-colors cursor-pointer"
           >
             Retry Fetch
           </button>
@@ -135,3 +135,4 @@ const AlertsPage = () => {
 };
 
 export default AlertsPage;
+

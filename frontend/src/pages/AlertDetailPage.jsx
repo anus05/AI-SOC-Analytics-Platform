@@ -79,24 +79,33 @@ const AlertDetailPage = () => {
   }
 
   return (
-    <div className="flex flex-col gap-sm max-w-[1200px] mx-auto w-full">
+    <div className="flex flex-col gap-3 max-w-[1200px] mx-auto w-full">
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm border-b border-border/40 pb-2">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 border-b border-white/10 pb-3">
         <div className="flex flex-col">
-          <h1 className="font-sans text-[15px] font-bold text-on-surface uppercase tracking-wide">
+          <h1 className="font-sans text-[15px] font-bold text-slate-200 uppercase tracking-wide">
             Incident Diagnosis Canvas
           </h1>
-          <p className="font-sans text-[11px] text-on-surface-variant">
+          <p className="font-sans text-[11px] text-slate-400">
             Detailed telemetry audit and MITRE ATT&CK recommendation for incident #{id}.
           </p>
         </div>
-        <div className="flex items-center gap-sm">
+        <div className="flex items-center gap-2">
+          {alert && (
+            <button
+              onClick={() => navigate(`/attack-timeline/${alert.id}`)}
+              className="flex items-center gap-1.5 font-mono text-[9px] uppercase font-bold tracking-wider py-1.5 px-3 rounded-lg border border-white/10 bg-slate-900/60 text-slate-300 hover:text-accent hover:border-teal-500/40 cursor-pointer select-none backdrop-blur-sm"
+            >
+              <span className="material-symbols-outlined text-[14px]">hub</span>
+              <span>View Attack Chain</span>
+            </button>
+          )}
           <button
             onClick={() => setShowCopilot(!showCopilot)}
-            className={`flex items-center gap-xs font-mono text-[9px] uppercase font-bold tracking-wider py-1 px-2.5 rounded border cursor-pointer select-none transition-all ${
+            className={`flex items-center gap-1.5 font-mono text-[9px] uppercase font-bold tracking-wider py-1.5 px-3 rounded-lg border cursor-pointer select-none transition-all backdrop-blur-sm ${
               showCopilot 
-                ? 'bg-accent/20 border-accent text-accent' 
-                : 'bg-[#11151c] border-border text-on-surface-variant hover:text-accent hover:border-accent'
+                ? 'bg-teal-500/20 border-teal-400 text-teal-300 shadow-xs' 
+                : 'bg-slate-900/60 border-white/10 text-slate-300 hover:text-accent hover:border-teal-500/40'
             }`}
           >
             <span className="material-symbols-outlined text-[14px]">psychology</span>
@@ -104,7 +113,7 @@ const AlertDetailPage = () => {
           </button>
           <button 
             onClick={() => navigate('/alerts')}
-            className="flex items-center gap-xs text-on-surface-variant hover:text-accent transition-colors self-start font-mono text-[9px] uppercase font-bold tracking-wider py-1 px-2.5 bg-[#11151c] rounded border border-border cursor-pointer select-none"
+            className="flex items-center gap-1.5 text-slate-300 hover:text-accent transition-colors self-start font-mono text-[9px] uppercase font-bold tracking-wider py-1.5 px-3 bg-slate-900/60 rounded-lg border border-white/10 cursor-pointer select-none backdrop-blur-sm"
           >
             <span className="material-symbols-outlined text-[14px]">arrow_back</span>
             <span>Back to Registry</span>
@@ -120,7 +129,7 @@ const AlertDetailPage = () => {
 
       {/* AI Investigation Section */}
       {showCopilot && alert && (
-        <div className="space-y-sm animate-fade-in">
+        <div className="space-y-3 animate-fade-in">
           <ExplainableScoreCard alertId={alert.id} initialScore={alert.threatScore || 85} />
           <AICopilotPanel alertId={alert.id} onClose={() => setShowCopilot(false)} />
         </div>
@@ -130,3 +139,4 @@ const AlertDetailPage = () => {
 };
 
 export default AlertDetailPage;
+

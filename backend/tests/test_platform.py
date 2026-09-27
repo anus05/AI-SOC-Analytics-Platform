@@ -133,6 +133,51 @@ class TestPlatformFeatures(unittest.TestCase):
         self.assertEqual(me_data["email"], "test.google@socvigil.net")
         self.assertEqual(me_data["google_sub"], "google-test-12345")
 
+    def test_dashboard_endpoint(self):
+        # Register/login user for token
+        login_resp = client.post(
+            "/auth/google",
+            json={
+                "email": "analyst.dash@socvigil.net",
+                "name": "Dashboard Analyst",
+                "google_id": "google-dash-12345",
+                "picture": "https://example.com/avatar.png"
+            }
+        )
+        token = login_resp.json()["access_token"]
+
+        response = client.get("/dashboard", headers={"Authorization": f"Bearer {token}"})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+
+        expected_keys = {
+            "totalAlerts",
+            "criticalAlerts",
+            "highAlerts",
+            "mediumAlerts",
+            "lowAlerts",
+            "detectionsToday",
+            "avgThreatScore",
+            "topAttackType",
+            "totalAlertsDiff",
+            "recentAlerts",
+            "attackTypes",
+            "alertsTrend"
+        }
+        self.assertEqual(set(data.keys()), expected_keys)
+        # Verify no deprecated fields exist
+        forbidden_keys = [
+            "total_alerts", "critical_alerts", "critical", "high_alerts", "high",
+            "highSeverity", "medium_alerts", "medium", "low_alerts", "low",
+            "today_detections", "detections_today", "avg_threat_score",
+            "average_threat_score", "threatScore", "threat_score",
+            "top_attack_type", "recent_incidents", "recent_alerts",
+            "attack_types", "alerts_trend"
+        ]
+        for k in forbidden_keys:
+            self.assertNotIn(k, data)
+
 
 if __name__ == "__main__":
     unittest.main()
+

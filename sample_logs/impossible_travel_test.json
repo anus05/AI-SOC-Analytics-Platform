@@ -1,0 +1,26 @@
+[
+  {
+    "timestamp": "2026-09-26T22:00:00Z",
+    "source_ip": "198.51.100.5",
+    "username": "sarah.connor",
+    "destination": "auth.corp.internal",
+    "event_type": "user_login",
+    "status": "Success",
+    "city": "New York",
+    "country": "United States",
+    "latitude": 40.7128,
+    "longitude": -74.0060
+  },
+  {
+    "timestamp": "2026-09-26T22:18:00Z",
+    "source_ip": "52.192.1.20",
+    "username": "sarah.connor",
+    "destination": "auth.corp.internal",
+    "event_type": "user_login",
+    "status": "Success",
+    "city": "Tokyo",
+    "country": "Japan",
+    "latitude": 35.6762,
+    "longitude": 139.6503
+  }
+]

@@ -7,13 +7,23 @@ load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
-    DATABASE_URL = "sqlite:///./soc.db"
+    sqlite_file = "test_soc.db" if os.path.exists("test_soc.db") else "soc.db"
+    DATABASE_URL = f"sqlite:///./{sqlite_file}"
 
 engine_args = {}
 if DATABASE_URL.startswith("sqlite"):
     engine_args["connect_args"] = {"check_same_thread": False}
 
-engine = create_engine(DATABASE_URL, **engine_args)
+try:
+    engine = create_engine(DATABASE_URL, **engine_args)
+    with engine.connect() as conn:
+        pass
+except Exception as e:
+    print(f"[!] Primary DATABASE_URL connection failed: {e}")
+    sqlite_file = "test_soc.db" if os.path.exists("test_soc.db") else "soc.db"
+    print(f"[*] Falling back to local SQLite database: {sqlite_file}")
+    DATABASE_URL = f"sqlite:///./{sqlite_file}"
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(
     autocommit=False,

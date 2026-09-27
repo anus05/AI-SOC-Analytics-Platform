@@ -4,6 +4,7 @@ import warnings
 import joblib
 import numpy as np
 import pandas as pd
+from typing import Optional, Dict, Any
 
 warnings.filterwarnings("ignore")
 
@@ -42,32 +43,42 @@ class MLService:
                     for c in raw_classes
                 ]
                 self.loaded = True
-                print("[+] ML Model (RandomForest/XGBoost Ensemble) & Label Encoder loaded successfully.")
+                print("[+] ML Model & Label Encoder loaded successfully.")
         except Exception as e:
             print(f"[!] Warning: Could not load ML model: {e}")
             self.loaded = False
 
-    def predict_log_entry(self, log: dict) -> Alert | None:
+    def predict_log_entry(self, log: Dict[str, Any]) -> Optional[Alert]:
         """
-        Input log dictionary -> Preprocessing -> Feature Engineering -> ML Prediction -> Threat Score -> Alert object
-        Returns rich alert object with confidence, attack type, probability, false positive rate, and SHAP explainability.
+        Runs ML classifier inference if genuine network flow telemetry features exist in the log entry.
+        Does NOT fabricate alerts when ML model is not loaded or for generic text logs.
         """
         if not self.loaded:
-            # Fallback heuristic prediction if ML pkl not present
-            return self._heuristic_prediction(log)
+            return None
+
+        # Check if this log entry has network flow features required by the CICIDS ML model
+        has_flow_telemetry = any(k in log for k in ["flow_duration", "Flow_Duration", "rst_flag_count", "total_fwd_packets", "fwd_packets"])
+        if not has_flow_telemetry:
+            # Generic syslog/auth logs are processed by rule-based detectors, not network flow ML
+            return None
 
         feature_dict = {col: 0.0 for col in self.feature_names}
 
-        # Feature engineering from log properties
-        port_val = log.get("port", 22)
-        feature_dict["Destination_Port"] = float(port_val)
+        # Extract features from log if present
+        for col in self.feature_names:
+            if col in log:
+                try:
+                    feature_dict[col] = float(log[col])
+                except Exception:
+                    pass
+            elif col.lower() in log:
+                try:
+                    feature_dict[col] = float(log[col.lower()])
+                except Exception:
+                    pass
 
-        status = log.get("status", "")
-        if status == "Failed":
-            feature_dict["RST_Flag_Count"] = 1.0
-            feature_dict["Total_Fwd_Packets"] = 12.0
-            feature_dict["Fwd_Packet_Length_Max"] = 128.0
-            feature_dict["Flow_Duration"] = 500.0
+        port_val = log.get("port") or log.get("destination_port") or 22
+        feature_dict["Destination_Port"] = float(port_val)
 
         df_X = pd.DataFrame([feature_dict])[self.feature_names]
 
@@ -83,7 +94,7 @@ class MLService:
                 probs = self.model.predict_proba(df_X)[0]
                 confidence = float(np.max(probs))
             else:
-                confidence = 0.88
+                confidence = 0.85
 
             if raw_label.upper() in ["BENIGN", "NORMAL"]:
                 return None
@@ -100,18 +111,17 @@ class MLService:
                 "DoS Hulk": "DDoS / Botnet",
                 "DoS Slowhttptest": "DDoS / Botnet",
                 "DoS slowloris": "DDoS / Botnet",
-                "Infiltration": "Impossible Travel"
+                "Infiltration": "Infiltration Anomaly"
             }
 
             attack_name = attack_mapping.get(raw_label, raw_label)
-            score = int(min(100, max(50, confidence * 100)))
+            score = int(min(100, max(50, round(confidence * 100))))
             sev_level = severity(score)
             mitre_data = get_mitre(attack_name)
 
-            ip = log.get("ip", "127.0.0.1")
+            ip = log.get("ip") or log.get("source_ip") or "127.0.0.1"
             user = log.get("user", "Unknown")
 
-            # Calculate explainability SHAP feature contributions
             explainability = {
                 "top_features": [
                     {"feature": "Flow_Duration", "importance": 0.35, "value": feature_dict.get("Flow_Duration", 0)},
@@ -134,40 +144,11 @@ class MLService:
                 user=user,
                 destination=log.get("destination", "auth.internal.corp"),
                 confidence=float(round(confidence * 100, 2)),
-                rule_name="ML Ensemble Classifier",
+                rule_name="ML Flow Classifier",
                 ml_probability=float(round(confidence, 4)),
                 fp_probability=fp_prob,
                 explainability_json=json.dumps(explainability)
             )
         except Exception as e:
             print(f"[!] ML Prediction error: {e}")
-            return self._heuristic_prediction(log)
-
-    def _heuristic_prediction(self, log: dict) -> Alert | None:
-        status = log.get("status", "")
-        if status == "Failed":
-            ip = log.get("ip", "127.0.0.1")
-            user = log.get("user", "Unknown")
-            explainability = {
-                "top_features": [
-                    {"feature": "Failed_Authentication_Sequence", "importance": 0.65, "value": 1},
-                    {"feature": "Destination_Port", "importance": 0.35, "value": log.get("port", 22)}
-                ],
-                "model_type": "Isolation Forest / AutoEncoder (Evaluated)",
-                "raw_class": "ANOMALOUS_LOGON"
-            }
-            return Alert(
-                attack="Brute Force Anomaly",
-                ip=ip,
-                failed_attempts=1,
-                threat_score=75,
-                severity="HIGH",
-                mitre="T1110 - Brute Force",
-                user=user,
-                confidence=85.0,
-                rule_name="ML Anomaly Engine",
-                ml_probability=0.85,
-                fp_probability=0.15,
-                explainability_json=json.dumps(explainability)
-            )
-        return None
+            return None

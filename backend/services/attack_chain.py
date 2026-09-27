@@ -18,7 +18,7 @@ class AttackChainService:
         alerts = db.query(AlertDB).order_by(AlertDB.created_at.asc()).all()
 
         if not alerts:
-            return self._get_or_create_default_chain(db)
+            return []
 
         # Group alerts by source_ip to form distinct attack chains
         chains_by_ip = {}
@@ -85,28 +85,7 @@ class AttackChainService:
     def get_attack_chain(self, db: Session, chain_id: int) -> Dict[str, Any]:
         chains = self.reconstruct_attack_chains(db)
         for c in chains:
-            if c["id"] == chain_id:
+            if c["id"] == chain_id or any(n.get("id") == f"alert-node-{chain_id}" for n in c.get("nodes", [])):
                 return c
-        return chains[0] if chains else {}
+        return {}
 
-    def _get_or_create_default_chain(self, db: Session) -> List[Dict[str, Any]]:
-        nodes = [
-            {"id": "node-1", "stage": "Port Scan", "mitre_id": "T1595", "severity": "LOW", "timestamp": "2026-09-02T10:00:00Z", "ip": "185.199.108.153", "hostname": "gateway.internal.corp", "username": "SYSTEM", "type": "AttackStage"},
-            {"id": "node-2", "stage": "Brute Force", "mitre_id": "T1110", "severity": "HIGH", "timestamp": "2026-09-02T10:15:00Z", "ip": "185.199.108.153", "hostname": "auth.internal.corp", "username": "admin", "type": "AttackStage"},
-            {"id": "node-3", "stage": "Privilege Escalation", "mitre_id": "T1068", "severity": "CRITICAL", "timestamp": "2026-09-02T10:30:00Z", "ip": "10.0.4.22", "hostname": "DB-Prod-01", "username": "root", "type": "AttackStage"}
-        ]
-        edges = [
-            {"from": "node-1", "to": "node-2", "label": "Reconnaissance -> Credential Access"},
-            {"from": "node-2", "to": "node-3", "label": "Credential Access -> Privilege Escalation"}
-        ]
-        return [{
-            "id": 1,
-            "title": "Default Reconstructed Attack Chain",
-            "root_ip": "185.199.108.153",
-            "user_account": "admin",
-            "threat_score": 90,
-            "status": "Active",
-            "nodes": nodes,
-            "edges": edges,
-            "created_at": "2026-09-02T10:00:00Z"
-        }]

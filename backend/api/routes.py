@@ -18,6 +18,7 @@ from backend.auth.auth import (
 
 from backend.database.crud import (
     save_alert,
+    clear_all_alerts,
     get_statistics,
     get_dashboard,
     get_alert,
@@ -25,6 +26,7 @@ from backend.database.crud import (
     attack_distribution,
     update_alert_status,
 )
+from backend.services.windows_event_collector import WindowsEventCollector
 
 router = APIRouter()
 service = DetectionService()
@@ -65,7 +67,7 @@ async def upload_logs(
                 user=item.get("user"),
                 action=item.get("status"),
                 raw_message=item.get("raw", "")[:1000],
-                parsed_json=json.dumps(item)
+                parsed_json=json.dumps(item, default=str)
             )
             db.add(log_rec)
         db.commit()
@@ -92,7 +94,10 @@ async def upload_logs(
         raise HTTPException(status_code=400, detail=f"Log parsing error: {str(e)}")
 
 
-# -------------------- Scan Logs --------------------
+windows_collector = WindowsEventCollector()
+
+
+# -------------------- Scan Logs & Live System --------------------
 
 @router.post("/scan")
 async def scan_logs(
@@ -100,45 +105,75 @@ async def scan_logs(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    target = "Local Gateway"
+    target = "Local Host / System Security Log"
     try:
         body = await request.json()
-        if isinstance(body, dict) and "target" in body:
+        if isinstance(body, dict) and "target" in body and body["target"]:
             target = body["target"]
     except Exception:
         pass
 
+    events_to_scan = []
+
+    # 1. Attempt genuine Windows Security Event Log collection if running on Windows
+    if windows_collector.is_available():
+        win_res = windows_collector.collect_events(max_records=100, lookback_minutes=1440)
+        if win_res.get("events"):
+            events_to_scan.extend(win_res["events"])
+
+    # 2. Check for configured system auth logs or custom files
     log_path = _resolve_log_path()
-    if not os.path.exists(log_path):
+    if os.path.exists(log_path):
+        file_logs = parse_file(log_path)
+        events_to_scan.extend(file_logs)
+
+    if not events_to_scan:
         return {
             "status": "success",
-            "message": "Scan completed (no log file found)",
+            "message": "Scan completed: No security log records found to analyze.",
             "target": target,
             "alerts_found": 0,
             "details": []
         }
 
-    logs = parse_file(log_path)
-    alerts = service.detect(logs)
+    # Run genuine detectors against real parsed events
+    alerts = service.detect(events_to_scan)
 
     saved_alerts = []
     for alert in alerts:
-        if target and target != "Local Gateway":
+        if target and target not in ("Local Host / System Security Log", "Local Gateway"):
             alert.destination = target
         db_alert = save_alert(db, alert)
         saved_alerts.append(db_alert)
 
     details = [
-        {"type": a.attack, "details": f"Flagged {a.failed_attempts} events from IP {a.ip} (Severity: {a.severity})"}
+        {"type": a.attack, "details": f"Flagged {a.failed_attempts} events from IP {a.ip} (Severity: {a.severity}, Score: {a.threat_score})"}
         for a in alerts[:8]
     ]
 
     return {
         "status": "success",
-        "message": "Scan Completed",
+        "message": f"Scan Completed: Analyzed {len(events_to_scan)} real log events.",
         "target": target,
         "alerts_found": len(alerts),
         "details": details
+    }
+
+
+# -------------------- Clear Alerts (Reset Fake / Old Data) --------------------
+
+@router.post("/alerts/clear")
+@router.delete("/alerts")
+def clear_alerts(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Truncates/clears all alert records from the database to restore a clean state."""
+    count = clear_all_alerts(db)
+    return {
+        "status": "success",
+        "message": f"Cleared {count} alert records from the database. System telemetry reset to clean state.",
+        "cleared_count": count
     }
 
 
@@ -171,17 +206,20 @@ def alerts(
     size: int = Query(default=10, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
-    return get_alerts_paginated(
-        db=db,
-        page=page,
-        size=size,
-        severity=severity,
-        attack=attack,
-        source_ip=source_ip,
-        search=search,
-        sort_by=sort_by,
-        order=order
-    )
+    try:
+        return get_alerts_paginated(
+            db=db,
+            page=page,
+            size=size,
+            severity=severity,
+            attack=attack,
+            source_ip=source_ip,
+            search=search,
+            sort_by=sort_by,
+            order=order
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to query alerts database: {str(e)}")
 
 
 # -------------------- Alert Details --------------------
@@ -192,10 +230,15 @@ def alert_details(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    alert = get_alert(db, alert_id)
-    if alert is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
-    return alert
+    try:
+        alert = get_alert(db, alert_id)
+        if alert is None:
+            raise HTTPException(status_code=404, detail="Alert not found")
+        return alert
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to query alert details: {str(e)}")
 
 
 # -------------------- Update Alert Status --------------------
@@ -207,10 +250,15 @@ def update_status(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    updated = update_alert_status(db, alert_id, payload.status)
-    if updated is None:
-        raise HTTPException(status_code=404, detail="Alert not found")
-    return updated
+    try:
+        updated = update_alert_status(db, alert_id, payload.status)
+        if updated is None:
+            raise HTTPException(status_code=404, detail="Alert not found")
+        return updated
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update alert status: {str(e)}")
 
 
 # -------------------- Statistics --------------------
@@ -220,7 +268,10 @@ def statistics(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return get_statistics(db)
+    try:
+        return get_statistics(db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to query statistics: {str(e)}")
 
 
 # -------------------- Dashboard --------------------
@@ -230,7 +281,10 @@ def dashboard(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return get_dashboard(db)
+    try:
+        return get_dashboard(db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load dashboard telemetry: {str(e)}")
 
 
 @router.get("/dashboard/attacks")
@@ -238,4 +292,7 @@ def dashboard_attacks(
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    return attack_distribution(db)
+    try:
+        return attack_distribution(db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to query attack distribution: {str(e)}")

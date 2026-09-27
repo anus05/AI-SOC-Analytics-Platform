@@ -27,16 +27,16 @@ const AlertsOverTimeChart = ({ dataPoints, loading }) => {
   if (loading) {
     return (
       <div className="w-full h-full flex flex-col justify-end p-2 animate-pulse min-h-[140px]">
-        <div className="flex-1 flex gap-2 items-end border-b border-l border-border/40 pb-2">
-          <div className="w-full bg-border/20 h-[20%] rounded-sm"></div>
-          <div className="w-full bg-border/20 h-[45%] rounded-sm"></div>
-          <div className="w-full bg-border/20 h-[30%] rounded-sm"></div>
-          <div className="w-full bg-border/20 h-[65%] rounded-sm"></div>
-          <div className="w-full bg-border/20 h-[50%] rounded-sm"></div>
-          <div className="w-full bg-border/20 h-[80%] rounded-sm"></div>
-          <div className="w-full bg-border/20 h-[40%] rounded-sm"></div>
+        <div className="flex-1 flex gap-2 items-end border-b border-l border-white/10 pb-2">
+          <div className="w-full bg-white/5 h-[20%] rounded-sm"></div>
+          <div className="w-full bg-white/5 h-[45%] rounded-sm"></div>
+          <div className="w-full bg-white/5 h-[30%] rounded-sm"></div>
+          <div className="w-full bg-white/5 h-[65%] rounded-sm"></div>
+          <div className="w-full bg-white/5 h-[50%] rounded-sm"></div>
+          <div className="w-full bg-white/5 h-[80%] rounded-sm"></div>
+          <div className="w-full bg-white/5 h-[40%] rounded-sm"></div>
         </div>
-        <div className="flex justify-between mt-1 text-[8px] font-mono text-on-surface-variant/40">
+        <div className="flex justify-between mt-1 text-[8px] font-mono text-slate-500">
           <span>00:00</span>
           <span>08:00</span>
           <span>16:00</span>
@@ -48,8 +48,8 @@ const AlertsOverTimeChart = ({ dataPoints, loading }) => {
 
   if (!dataPoints || dataPoints.length === 0) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center p-4 border border-dashed border-border rounded text-on-surface-variant font-mono text-[10px] min-h-[140px]">
-        <span className="material-symbols-outlined text-[16px] mb-xs">show_chart</span>
+      <div className="w-full h-full flex flex-col items-center justify-center p-4 border border-dashed border-white/10 rounded-lg text-slate-400 font-mono text-[10px] min-h-[140px]">
+        <span className="material-symbols-outlined text-[16px] mb-xs text-accent">show_chart</span>
         <span>NO TELEMETRY RECORDED</span>
       </div>
     );
@@ -64,14 +64,14 @@ const AlertsOverTimeChart = ({ dataPoints, loading }) => {
       {
         label: 'Detections',
         data: counts,
-        borderColor: '#58a6ff', // desaturated blue accent
-        backgroundColor: 'rgba(88, 166, 255, 0.05)',
+        borderColor: '#2dd4bf', // teal accent
+        backgroundColor: 'rgba(45, 212, 191, 0.08)',
         fill: true,
-        tension: 0.2, // flatter tension for a real SIEM look
-        pointBackgroundColor: '#58a6ff',
-        pointBorderColor: '#0d1117',
-        pointHoverRadius: 4,
-        borderWidth: 1.5,
+        tension: 0.25,
+        pointBackgroundColor: '#2dd4bf',
+        pointBorderColor: '#090d16',
+        pointHoverRadius: 5,
+        borderWidth: 1.8,
       }
     ]
   };
@@ -84,35 +84,35 @@ const AlertsOverTimeChart = ({ dataPoints, loading }) => {
         display: false
       },
       tooltip: {
-        backgroundColor: '#11151c',
-        titleColor: '#c9d1d9',
-        bodyColor: '#c9d1d9',
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        titleColor: '#f1f5f9',
+        bodyColor: '#e2e8f0',
         titleFont: { family: 'Inter', size: 10, weight: 'bold' },
         bodyFont: { family: 'JetBrains Mono', size: 10 },
-        borderColor: '#22262f',
+        borderColor: 'rgba(255, 255, 255, 0.15)',
         borderWidth: 1,
-        padding: 6,
+        padding: 8,
         displayColors: false
       }
     },
     scales: {
       x: {
         grid: {
-          color: 'rgba(34, 38, 47, 0.4)',
+          color: 'rgba(255, 255, 255, 0.05)',
           drawBorder: false
         },
         ticks: {
-          color: '#8b949e',
+          color: '#94a3b8',
           font: { family: 'JetBrains Mono', size: 9 }
         }
       },
       y: {
         grid: {
-          color: 'rgba(34, 38, 47, 0.4)',
+          color: 'rgba(255, 255, 255, 0.05)',
           drawBorder: false
         },
         ticks: {
-          color: '#8b949e',
+          color: '#94a3b8',
           font: { family: 'JetBrains Mono', size: 9 },
           stepSize: 10
         }
@@ -128,3 +128,4 @@ const AlertsOverTimeChart = ({ dataPoints, loading }) => {
 };
 
 export default AlertsOverTimeChart;
+

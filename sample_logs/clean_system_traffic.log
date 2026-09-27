@@ -1,0 +1,8 @@
+# TEST DATASET: Legitimate Baseline System Traffic
+# Description: Normal authorized logins and standard health check activity with no malicious patterns
+2026-09-26T10:00:00Z ip-10-77-20-248 sshd[2101]: Accepted publickey for ubuntu from 198.51.100.10 port 52100 ssh2
+2026-09-26T10:05:00Z ip-10-77-20-248 systemd[1]: Started Daily apt upgrade and clean activities.
+2026-09-26T10:15:30Z ip-10-77-20-248 sshd[2204]: Accepted publickey for alice from 198.51.100.11 port 52140 ssh2
+2026-09-26T10:30:00Z ip-10-77-20-248 nginx[4102]: 198.51.100.10 - ubuntu [26/Sep/2026:10:30:00 +0000] "GET /api/health HTTP/1.1" 200 64
+2026-09-26T11:00:00Z ip-10-77-20-248 sshd[2310]: Accepted publickey for bob from 198.51.100.12 port 52200 ssh2
+2026-09-26T11:45:10Z ip-10-77-20-248 nginx[4105]: 198.51.100.12 - bob [26/Sep/2026:11:45:10 +0000] "GET /dashboard HTTP/1.1" 200 4096

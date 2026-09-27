@@ -64,21 +64,21 @@ const IncidentReportsPage = () => {
   };
 
   return (
-    <div className="space-y-md max-w-[1600px] mx-auto w-full text-left">
+    <div className="space-y-4 max-w-[1600px] mx-auto w-full text-left">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2.5">
         <div>
-          <h1 className="font-sans text-[16px] font-bold text-on-surface uppercase tracking-wide">
+          <h1 className="font-sans text-[16px] font-bold text-slate-200 uppercase tracking-wide">
             LLM Incident Report Generator
           </h1>
-          <p className="font-sans text-[11px] text-on-surface-variant">
+          <p className="font-sans text-[11px] text-slate-400">
             Automated enterprise SOC incident reports with executive summaries, MITRE mapping, IOCs, and downloadable PDFs.
           </p>
         </div>
         <button
           onClick={handleGenerateReport}
           disabled={generating}
-          className="btn-primary rounded py-1.5 px-4 font-sans font-bold text-[10px] uppercase tracking-wider flex justify-center items-center gap-xs cursor-pointer select-none disabled:opacity-50"
+          className="btn-primary rounded-lg py-2 px-4 font-sans font-bold text-[10px] uppercase tracking-wider flex justify-center items-center gap-1.5 cursor-pointer select-none disabled:opacity-50 shadow-sm"
         >
           {generating ? (
             <>
@@ -96,56 +96,56 @@ const IncidentReportsPage = () => {
 
       {/* Error Banner */}
       {error && (
-        <div className="p-3 border border-[#f85149]/40 bg-[#f85149]/10 text-[#f85149] font-mono text-[11px] rounded flex justify-between items-center">
+        <div className="p-3 border border-rose-500/40 bg-rose-500/10 text-rose-400 font-mono text-[11px] rounded-lg flex justify-between items-center backdrop-blur-sm">
           <span>{error}</span>
-          <button onClick={fetchReports} className="px-2 py-0.5 bg-[#f85149] text-white rounded font-sans text-[10px] uppercase font-bold">
+          <button onClick={fetchReports} className="px-3 py-1 bg-rose-500 text-white rounded-md font-sans text-[10px] uppercase font-bold">
             Retry
           </button>
         </div>
       )}
 
       {/* Reports Grid / Index Table */}
-      <div className="bg-surface border border-border rounded overflow-hidden shadow-sm">
-        <div className="px-4 py-3 border-b border-border bg-[#161b22]/50 flex justify-between items-center">
-          <h2 className="font-sans text-[10px] text-on-surface uppercase tracking-wider font-bold">
+      <div className="glass-panel shadow-lg overflow-hidden">
+        <div className="px-4 py-3 border-b border-white/10 bg-slate-950/60 flex justify-between items-center">
+          <h2 className="font-sans text-[10px] text-slate-200 uppercase tracking-wider font-bold">
             Generated Incident Audit Reports ({reports.length} Documents)
           </h2>
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[250px] gap-sm">
+          <div className="flex flex-col items-center justify-center min-h-[250px] gap-2.5">
             <span className="material-symbols-outlined text-[28px] text-accent animate-spin">description</span>
-            <span className="font-mono text-[11px] text-on-surface-variant uppercase tracking-wider">
+            <span className="font-mono text-[11px] text-slate-400 uppercase tracking-wider">
               Fetching Reports from PostgreSQL...
             </span>
           </div>
         ) : reports.length === 0 ? (
-          <div className="p-8 text-center font-mono text-[11px] text-on-surface-variant">
+          <div className="p-8 text-center font-mono text-[11px] text-slate-400">
             No incident reports generated yet. Click "One-Click Generate Report" above.
           </div>
         ) : (
           <div className="overflow-x-auto w-full">
             <table className="w-full text-left border-collapse min-w-[700px]">
-              <thead className="bg-[#11151c] border-b border-border text-on-surface-variant font-sans text-[9px] uppercase tracking-wider">
+              <thead className="bg-slate-950/50 border-b border-white/10 text-slate-400 font-sans text-[9px] uppercase tracking-wider">
                 <tr>
-                  <th className="p-3 font-bold">Report ID</th>
+                  <th className="p-3 font-bold pl-4">Report ID</th>
                   <th className="p-3 font-bold">Document Title</th>
                   <th className="p-3 font-bold">Risk Score</th>
                   <th className="p-3 font-bold">Generated Date</th>
-                  <th className="p-3 font-bold text-right">Actions</th>
+                  <th className="p-3 font-bold text-right pr-4">Actions</th>
                 </tr>
               </thead>
-              <tbody className="font-mono text-[11px] text-on-surface divide-y divide-border/40">
+              <tbody className="font-mono text-[11px] text-slate-200 divide-y divide-white/5">
                 {reports.map((r) => (
-                  <tr key={r.id} className="hover:bg-[#161b22]/50 transition-colors">
-                    <td className="p-3 font-bold text-accent">{r.report_number}</td>
-                    <td className="p-3 font-sans font-semibold text-on-surface">{r.title}</td>
-                    <td className="p-3 font-bold text-[#f85149]">{r.risk_score} / 100</td>
-                    <td className="p-3 text-on-surface-variant">{new Date(r.created_at).toLocaleDateString()}</td>
-                    <td className="p-3 text-right space-x-2">
+                  <tr key={r.id} className="hover:bg-slate-800/50 transition-colors">
+                    <td className="p-3 pl-4 font-bold text-accent">{r.report_number}</td>
+                    <td className="p-3 font-sans font-semibold text-slate-200">{r.title}</td>
+                    <td className="p-3 font-bold text-rose-400">{r.risk_score} / 100</td>
+                    <td className="p-3 text-slate-400">{new Date(r.created_at).toLocaleDateString()}</td>
+                    <td className="p-3 text-right pr-4 space-x-2">
                       <button
                         onClick={() => handleDownloadPdf(r)}
-                        className="px-2.5 py-1 rounded bg-[#0d1117] border border-border hover:border-accent text-accent font-mono text-[9px] font-bold uppercase transition-all cursor-pointer"
+                        className="px-3 py-1 rounded-md bg-slate-950/70 border border-white/10 hover:border-teal-400 text-accent font-mono text-[9px] font-bold uppercase transition-all cursor-pointer shadow-xs"
                       >
                         PDF Download
                       </button>
@@ -171,3 +171,4 @@ const IncidentReportsPage = () => {
 };
 
 export default IncidentReportsPage;
+

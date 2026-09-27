@@ -185,24 +185,46 @@ def save_alert(db: Session, alert):
 
     user_acc = getattr(alert, "user", "Unknown")
     dest = getattr(alert, "destination", "auth.internal.corp")
+    dest_ip = getattr(alert, "destination_ip", "10.0.0.1")
+    host_val = getattr(alert, "host", "server-01.corp.internal")
+    rule_val = getattr(alert, "rule_name", "Standard Analytics Rule")
+    conf_val = getattr(alert, "confidence", 85.0)
+    ml_prob = getattr(alert, "ml_probability", 0.0)
+    fp_prob = getattr(alert, "fp_probability", 0.0)
+    expl_json = getattr(alert, "explainability_json", "{}")
     status_val = getattr(alert, "status", "New")
 
     db_alert = AlertDB(
         attack=alert.attack,
         source_ip=alert.ip,
+        destination_ip=dest_ip,
         failed_attempts=alert.failed_attempts,
         threat_score=alert.threat_score,
         severity=alert.severity,
+        confidence=conf_val,
         technique=tech,
         status=status_val,
         user_account=user_acc,
-        destination=dest
+        destination=dest,
+        host_name=host_val,
+        rule_name=rule_val,
+        ml_probability=ml_prob,
+        fp_probability=fp_prob,
+        explainability_json=expl_json
     )
 
     db.add(db_alert)
     db.commit()
     db.refresh(db_alert)
     return db_alert
+
+
+def clear_all_alerts(db: Session) -> int:
+    """Truncates/clears all alert records from the database."""
+    count = db.query(AlertDB).count()
+    db.query(AlertDB).delete()
+    db.commit()
+    return count
 
 
 def get_alerts(db: Session):
@@ -370,35 +392,18 @@ def get_dashboard(db: Session):
         diff_str = "+100%" if detections_today > 0 else "0%"
 
     return {
-        "total_alerts": total,
         "totalAlerts": total,
-        "critical_alerts": critical,
         "criticalAlerts": critical,
-        "critical": critical,
-        "high_alerts": high,
-        "high": high,
-        "highSeverity": high,
-        "medium_alerts": medium,
-        "medium": medium,
-        "low_alerts": low,
-        "low": low,
-        "today_detections": detections_today,
+        "highAlerts": high,
+        "mediumAlerts": medium,
+        "lowAlerts": low,
         "detectionsToday": detections_today,
-        "detections_today": detections_today,
-        "avg_threat_score": avg_threat_score,
-        "average_threat_score": avg_threat_score,
-        "threatScore": avg_threat_score,
-        "threat_score": avg_threat_score,
-        "top_attack_type": top_attack_type,
+        "avgThreatScore": avg_threat_score,
         "topAttackType": top_attack_type,
         "totalAlertsDiff": diff_str,
-        "recent_incidents": recent_alerts,
         "recentAlerts": recent_alerts,
-        "recent_alerts": recent_alerts,
         "attackTypes": attack_types,
-        "attack_types": attack_types,
-        "alertsTrend": alerts_trend,
-        "alerts_trend": alerts_trend
+        "alertsTrend": alerts_trend
     }
 
 
@@ -511,7 +516,7 @@ def get_statistics(db: Session):
 
     # Detection accuracy calculation (ratio of verified alerts in DB)
     verified_count = db.query(AlertDB).filter(AlertDB.threat_score >= 50).count()
-    accuracy = round((verified_count / total * 100), 1) if total > 0 else 96.4
+    accuracy = round((verified_count / total * 100), 1) if total > 0 else 0.0
 
     return {
         "total_alerts": total,

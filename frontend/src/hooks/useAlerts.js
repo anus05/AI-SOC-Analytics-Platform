@@ -53,39 +53,38 @@ export const useAlerts = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const getDashboardData = useCallback(async () => {
+  const getDashboardData = useCallback(async (options = {}) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await client.get('/dashboard');
+      const config = options && options.signal ? { signal: options.signal } : {};
+      const response = await client.get('/dashboard', config);
       const data = response.data || {};
       setLoading(false);
 
       return {
-        totalAlerts: data.totalAlerts ?? data.total_alerts ?? 0,
-        total_alerts: data.totalAlerts ?? data.total_alerts ?? 0,
-        criticalAlerts: data.criticalAlerts ?? data.critical_alerts ?? data.critical ?? 0,
-        highSeverity: data.highSeverity ?? data.high_alerts ?? data.high ?? 0,
-        mediumSeverity: data.medium ?? data.medium_alerts ?? 0,
-        lowSeverity: data.low ?? data.low_alerts ?? 0,
-        threatScore: data.threatScore ?? data.avg_threat_score ?? 0,
-        detectionsToday: data.detectionsToday ?? data.today_detections ?? 0,
-        topAttackType: data.topAttackType ?? data.top_attack_type ?? 'None',
+        totalAlerts: data.totalAlerts ?? 0,
+        criticalAlerts: data.criticalAlerts ?? 0,
+        highAlerts: data.highAlerts ?? 0,
+        mediumAlerts: data.mediumAlerts ?? 0,
+        lowAlerts: data.lowAlerts ?? 0,
+        detectionsToday: data.detectionsToday ?? 0,
+        avgThreatScore: data.avgThreatScore ?? 0,
+        topAttackType: data.topAttackType || 'None',
         totalAlertsDiff: data.totalAlertsDiff || '0%',
-        alertsTrend: Array.isArray(data.alertsTrend || data.alerts_trend)
-          ? (data.alertsTrend || data.alerts_trend)
-          : [],
-        attackTypes: Array.isArray(data.attackTypes || data.attack_types)
-          ? (data.attackTypes || data.attack_types)
-          : [],
-        recentAlerts: Array.isArray(data.recentAlerts || data.recent_alerts)
-          ? (data.recentAlerts || data.recent_alerts).map(normalizeAlert)
+        alertsTrend: Array.isArray(data.alertsTrend) ? data.alertsTrend : [],
+        attackTypes: Array.isArray(data.attackTypes) ? data.attackTypes : [],
+        recentAlerts: Array.isArray(data.recentAlerts)
+          ? data.recentAlerts.map(normalizeAlert)
           : []
       };
     } catch (err) {
-      const msg = err.response?.data?.detail || 'Failed to fetch real-time dashboard telemetry from PostgreSQL.';
-      setError(msg);
       setLoading(false);
+      if (err.name === 'CanceledError' || err.name === 'AbortError' || err.code === 'ERR_CANCELED') {
+        throw err;
+      }
+      const msg = err.response?.data?.detail || err.message || 'Failed to fetch real-time dashboard telemetry.';
+      setError(msg);
       throw new Error(msg);
     }
   }, []);

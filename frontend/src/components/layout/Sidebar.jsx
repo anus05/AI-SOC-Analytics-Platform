@@ -20,22 +20,22 @@ const Sidebar = () => {
   return (
     <>
       {/* Desktop Left Sidebar Nav - Hidden on mobile */}
-      <aside className="hidden md:flex flex-col w-56 bg-surface border-r border-border min-h-[calc(100vh-48px)] p-3 gap-sm shrink-0">
-        <span className="font-sans text-[9px] font-bold text-on-surface-variant tracking-wider uppercase mb-1">Navigation Menu</span>
-        <div className="flex flex-col gap-[4px]">
+      <aside className="hidden md:flex flex-col w-60 bg-slate-900/60 backdrop-blur-md border-r border-white/10 min-h-[calc(100vh-52px)] p-3.5 gap-2 shrink-0 shadow-lg select-none">
+        <span className="font-sans text-[9px] font-bold text-slate-400 tracking-wider uppercase mb-1 px-1">Navigation Menu</span>
+        <div className="flex flex-col gap-1">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
                 className={({ isActive }) => `
-                  flex items-center gap-sm px-3 py-1.5 rounded transition-all select-none border
+                  flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 select-none border text-left
                   ${isActive 
-                    ? 'bg-[#1f242c] border-border text-accent font-bold' 
-                    : 'border-transparent text-on-surface-variant hover:text-on-surface hover:bg-[#161b22]'
+                    ? 'bg-teal-500/15 border-teal-500/40 text-accent font-bold shadow-xs' 
+                    : 'border-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-800/40 hover:border-white/5'
                   }
                 `}
               >
-                <span className="material-symbols-outlined text-[15px]">
+                <span className="material-symbols-outlined text-[16px]">
                   {item.icon}
                 </span>
                 <span className="font-sans text-[11px] font-bold tracking-wide">{item.label}</span>
@@ -44,21 +44,21 @@ const Sidebar = () => {
         </div>
 
         {/* AI Enterprise Modules Section Separator */}
-        <span className="font-sans text-[9px] font-bold text-accent tracking-wider uppercase mt-3 mb-1">AI Modules</span>
-        <div className="flex flex-col gap-[4px]">
+        <span className="font-sans text-[9px] font-bold text-accent tracking-wider uppercase mt-4 mb-1 px-1">AI Modules</span>
+        <div className="flex flex-col gap-1">
           {aiModuleItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
                 className={({ isActive }) => `
-                  flex items-center gap-sm px-3 py-1.5 rounded transition-all select-none border
+                  flex items-center gap-2.5 px-3 py-2 rounded-lg transition-all duration-150 select-none border text-left
                   ${isActive 
-                    ? 'bg-[#1f242c] border-border text-accent font-bold' 
-                    : 'border-transparent text-on-surface-variant hover:text-on-surface hover:bg-[#161b22]'
+                    ? 'bg-teal-500/15 border-teal-500/40 text-accent font-bold shadow-xs' 
+                    : 'border-transparent text-slate-400 hover:text-slate-100 hover:bg-slate-800/40 hover:border-white/5'
                   }
                 `}
               >
-                <span className="material-symbols-outlined text-[15px]">
+                <span className="material-symbols-outlined text-[16px]">
                   {item.icon}
                 </span>
                 <span className="font-sans text-[11px] font-bold tracking-wide">{item.label}</span>
@@ -67,20 +67,20 @@ const Sidebar = () => {
         </div>
         
         {/* Connection status in sidebar footer */}
-        <div className="mt-auto bg-[#0d1117] border border-border rounded p-2 text-left">
-          <div className="flex items-center gap-[4px] mb-1">
-            <div className="w-2 h-2 rounded-full bg-[#3fb8af]"></div>
-            <span className="font-mono text-[9px] text-[#3fb8af] uppercase font-bold tracking-wider">GATEWAY CONNECTED</span>
+        <div className="mt-auto bg-slate-950/70 border border-white/10 rounded-lg p-2.5 text-left backdrop-blur-sm">
+          <div className="flex items-center gap-1.5 mb-1">
+            <div className="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></div>
+            <span className="font-mono text-[9px] text-teal-400 uppercase font-bold tracking-wider">GATEWAY CONNECTED</span>
           </div>
-          <p className="font-mono text-[9px] text-on-surface-variant leading-relaxed">
+          <p className="font-mono text-[9px] text-slate-400 leading-relaxed">
             API Address: <br/>
-            <span className="text-on-surface font-bold">http://localhost:8000</span>
+            <span className="text-slate-200 font-bold">http://localhost:8000</span>
           </p>
         </div>
       </aside>
 
       {/* Mobile Bottom Navigation Bar - Hidden on desktop */}
-      <nav className="md:hidden bg-surface text-on-surface-variant fixed bottom-0 left-0 w-full z-50 border-t border-border flex justify-around items-center h-12 pb-px shadow-sm overflow-x-auto">
+      <nav className="md:hidden bg-slate-900/90 backdrop-blur-xl text-slate-400 fixed bottom-0 left-0 w-full z-50 border-t border-white/10 flex justify-around items-center h-12 pb-px shadow-2xl overflow-x-auto">
         {[...navItems, ...aiModuleItems].map((item) => {
           const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
           return (
@@ -91,7 +91,7 @@ const Sidebar = () => {
                 flex flex-col items-center justify-center transition-all duration-100 ease-in-out w-14 shrink-0
                 ${isActive 
                   ? 'text-accent font-bold' 
-                  : 'text-on-surface-variant hover:text-accent'
+                  : 'text-slate-400 hover:text-accent'
                 }
               `}
             >
@@ -108,3 +108,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+

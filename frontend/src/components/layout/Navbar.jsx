@@ -13,21 +13,23 @@ const Navbar = ({ systemStatus = 'Secure', onRefresh, refreshing }) => {
   };
 
   return (
-    <header className="bg-surface border-b border-border flex justify-between items-center w-full px-4 h-12 sticky top-0 z-50">
+    <header className="bg-slate-900/70 backdrop-blur-md border-b border-white/10 flex justify-between items-center w-full px-5 h-13 sticky top-0 z-50 shadow-md">
       {/* Brand Title */}
-      <div className="flex items-center gap-md">
-        <span className="material-symbols-outlined text-accent text-[20px]">shield</span>
+      <div className="flex items-center gap-2.5">
+        <div className="w-7 h-7 rounded-lg bg-teal-500/10 border border-teal-500/30 flex items-center justify-center">
+          <span className="material-symbols-outlined text-accent text-[18px]">shield</span>
+        </div>
         <h1 className="font-sans text-[13px] font-bold text-accent tracking-wider uppercase">
           AI SOC PLATFORM
         </h1>
       </div>
 
       {/* Center Status Badge & Global Refresh */}
-      <div className="hidden md:flex items-center gap-sm">
-        <div className="flex items-center gap-sm bg-[#0d1117] px-2.5 py-1 rounded border border-border">
+      <div className="hidden md:flex items-center gap-2.5">
+        <div className="flex items-center gap-2 bg-slate-950/60 px-3 py-1 rounded-md border border-white/10 backdrop-blur-sm">
           <span className="material-symbols-outlined text-accent text-[12px] filled-icon animate-pulse">verified_user</span>
-          <span className="font-sans text-[10px] text-on-surface-variant uppercase tracking-wider">
-            DB Telemetry: <span className="text-[#58a6ff] font-mono font-bold">POSTGRESQL CONNECTED</span>
+          <span className="font-sans text-[10px] text-slate-300 uppercase tracking-wider">
+            DB Telemetry: <span className="text-accent font-mono font-bold">POSTGRESQL CONNECTED</span>
           </span>
         </div>
 
@@ -36,7 +38,7 @@ const Navbar = ({ systemStatus = 'Secure', onRefresh, refreshing }) => {
             onClick={onRefresh}
             disabled={refreshing}
             title="Refresh database telemetry"
-            className="flex items-center gap-1 bg-[#0d1117] hover:bg-[#161b22] border border-border text-on-surface-variant hover:text-accent px-2 py-1 rounded font-mono text-[10px] transition-all cursor-pointer disabled:opacity-50 select-none"
+            className="flex items-center gap-1.5 bg-slate-950/60 hover:bg-slate-800/60 border border-white/10 text-slate-300 hover:text-accent px-2.5 py-1 rounded-md font-mono text-[10px] transition-all cursor-pointer disabled:opacity-50 select-none backdrop-blur-sm"
           >
             <span className={`material-symbols-outlined text-[14px] ${refreshing ? 'animate-spin text-accent' : ''}`}>
               refresh
@@ -47,38 +49,38 @@ const Navbar = ({ systemStatus = 'Secure', onRefresh, refreshing }) => {
       </div>
 
       {/* Operator Details and Dropdown */}
-      <div className="flex items-center gap-sm relative">
+      <div className="flex items-center gap-2.5 relative">
         <div className="hidden md:flex flex-col text-right">
-          <span className="font-mono text-[10px] text-on-surface font-bold leading-none">
+          <span className="font-mono text-[10px] text-slate-200 font-bold leading-none">
             {operator?.name || operator?.username || 'OPERATOR'}
           </span>
-          <span className="font-sans text-[8px] text-on-surface-variant tracking-wider uppercase mt-1">
+          <span className="font-sans text-[8px] text-slate-400 tracking-wider uppercase mt-1">
             {operator?.role || 'SOC ANALYST'}
           </span>
         </div>
 
         <button 
           onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="w-7 h-7 rounded border border-border bg-[#0d1117] hover:bg-[#161b22] hover:border-[#8b949e] cursor-pointer transition-all flex items-center justify-center select-none overflow-hidden"
+          className="w-8 h-8 rounded-lg border border-white/15 bg-slate-950/60 hover:bg-slate-800/80 hover:border-teal-500/50 cursor-pointer transition-all flex items-center justify-center select-none overflow-hidden backdrop-blur-sm shadow-inner"
         >
           {operator?.picture ? (
             <img src={operator.picture} alt="Avatar" className="w-full h-full object-cover" />
           ) : (
-            <span className="font-mono text-[10px] text-accent font-bold">{getInitials()}</span>
+            <span className="font-mono text-[11px] text-accent font-bold">{getInitials()}</span>
           )}
         </button>
 
         {dropdownOpen && (
-          <div className="absolute right-0 top-9 bg-surface border border-border rounded p-2 shadow-xl w-48 flex flex-col z-50 animate-fade-in gap-1.5">
-            <div className="px-1 py-1 border-b border-border/40 flex flex-col">
-              <span className="font-mono text-[11px] font-bold text-on-surface truncate">
+          <div className="absolute right-0 top-10 bg-slate-900/90 backdrop-blur-xl border border-white/15 rounded-lg p-2.5 shadow-2xl w-52 flex flex-col z-50 animate-fade-in gap-2">
+            <div className="px-1.5 py-1 border-b border-white/10 flex flex-col">
+              <span className="font-mono text-[11px] font-bold text-slate-200 truncate">
                 {operator?.name || operator?.username || 'Operator'}
               </span>
-              <span className="font-sans text-[9px] text-on-surface-variant truncate">
+              <span className="font-sans text-[9px] text-slate-400 truncate">
                 {operator?.email}
               </span>
               {operator?.google_id && (
-                <div className="flex items-center gap-1 mt-1 font-mono text-[8px] text-accent bg-accent/10 px-1.5 py-0.5 rounded w-fit">
+                <div className="flex items-center gap-1 mt-1 font-mono text-[8px] text-accent bg-teal-500/10 px-1.5 py-0.5 rounded border border-teal-500/20 w-fit">
                   <span className="material-symbols-outlined text-[10px]">verified</span>
                   <span>Google SSO</span>
                 </div>
@@ -89,7 +91,7 @@ const Navbar = ({ systemStatus = 'Secure', onRefresh, refreshing }) => {
                 setDropdownOpen(false);
                 logout();
               }}
-              className="flex items-center gap-xs px-2 py-1.5 text-[#f85149] hover:bg-[#f85149]/10 rounded w-full text-left font-sans text-[11px] transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-2.5 py-1.5 text-rose-400 hover:bg-rose-500/15 rounded-md w-full text-left font-sans text-[11px] transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined text-[14px]">logout</span>
               <span>Sign Out</span>
@@ -103,3 +105,4 @@ const Navbar = ({ systemStatus = 'Secure', onRefresh, refreshing }) => {
 };
 
 export default Navbar;
+
